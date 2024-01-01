@@ -634,6 +634,8 @@ SQL;
          $triples = $parser->getTriples();
          */
 
+        $writeKey = $this->settings->get('sparql_arc2_write_key') ?: '';
+
         // Endpoint configuration.
         $db = $this->connection->getParams();
         $configArc2 = [
@@ -673,7 +675,7 @@ SQL;
             // Not implemented in ARC2 preview.
             'endpoint_timeout' => 60,
             'endpoint_read_key' => '',
-            'endpoint_write_key' => '',
+            'endpoint_write_key' => $writeKey,
             'endpoint_max_limit' => \Omeka\Stdlib\Paginator::PER_PAGE,
         ];
 

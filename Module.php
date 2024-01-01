@@ -10,6 +10,7 @@ use Common\Stdlib\PsrMessage;
 use Common\TraitModule;
 use Laminas\ModuleManager\ModuleManager;
 use Laminas\Mvc\Controller\AbstractController;
+use Laminas\Mvc\MvcEvent;
 use Omeka\Module\AbstractModule;
 use Omeka\Module\Exception\ModuleCannotInstallException;
 
@@ -28,6 +29,28 @@ class Module extends AbstractModule
     public function init(ModuleManager $moduleManager): void
     {
         require_once __DIR__ . '/vendor/autoload.php';
+    }
+
+    public function onBootstrap(MvcEvent $event): void
+    {
+        parent::onBootstrap($event);
+
+        /**
+         * @var \Omeka\Permissions\Acl $acl
+         * @see \Omeka\Service\AclFactory
+         */
+        $services = $this->getServiceLocator();
+        $acl = $services->get('Omeka\Acl');
+
+        $acl
+            // Anybody can use the sparql endpoint.
+            // TODO Use credentials in sparql like api.
+            ->allow(
+                null,
+                [\Sparql\Controller\IndexController::class],
+                ['error', 'sparql']
+            )
+        ;
     }
 
     protected function preInstall(): void
@@ -62,15 +85,20 @@ class Module extends AbstractModule
             return false;
         }
 
+        $services = $this->getServiceLocator();
+        $settings = $services->get('Omeka\Settings');
+        if (!$settings->get('sparql_arc2_write_key')) {
+            $writeKey = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(128))), 0, 24);
+            $settings->set('sparql_arc2_write_key', $writeKey);
+        }
+
         $params = $controller->getRequest()->getPost();
         if (empty($params['process'])) {
             return true;
         }
 
-        $services = $this->getServiceLocator();
         $config = $services->get('Config');
         $plugins = $services->get('ControllerPluginManager');
-        $settings = $services->get('Omeka\Settings');
         $urlPlugin = $plugins->get('url');
         $messenger = $plugins->get('messenger');
 

@@ -1,0 +1,48 @@
+<?php
+/**
+ * @var \Laminas\View\Renderer\PhpRenderer $this
+ * @var \Sparql\Form\SparqlForm $form
+ * @var \EasyRdf\Sparql\Result|\EasyRdf\Graph|null $result Unused currently
+ * @var array $resultArc2
+ * @var string $query
+ * @var string $format "text" or "html" Unused currently.
+ * @var string $errorMessage
+ */
+
+$plugins = $this->getHelperPluginManager();
+$escape = $plugins->get('escapeHtml');
+$translate = $plugins->get('translate');
+
+$this->htmlElement('body')->appendAttribute('class', 'sparql');
+$this->headLink()->appendStylesheet($this->assetUrl('css/sparql.css', 'Sparql'));
+?>
+
+<?= $this->pageTitle($translate('Sparql'), 1, $translate('Triplestore')) ?>
+
+<div id="page-actions">
+    <?= $this->formButton($form->get('submit')) ?>
+    <?php $form->remove('submit'); ?>
+</div>
+
+<?= $this->form($form) ?>
+
+<?php if ($errorMessage): ?>
+    <div class='error'>
+        <h3><?= $escape($translate('Error')) ?></h3>
+        <p>
+            <?= nl2br($escape($errorMessage)) ?>
+        </p>
+    </div>
+<?php elseif ($resultArc2): ?>
+    <div class="result">
+        <table>
+        <?php foreach ($resultArc2['result']['rows'] as $row): ?>
+            <tr>
+                <?php foreach ($row as $key => $value): ?>
+                <?php if (!in_array($key, $resultArc2['result']['variables'])) continue; ?>
+                <td><?= $escape($value) ?></td>
+                <?php endforeach; ?>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+<?php endif; ?>

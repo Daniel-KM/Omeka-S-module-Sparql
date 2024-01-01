@@ -3,9 +3,35 @@
 namespace Sparql;
 
 return [
+    'view_manager' => [
+        'template_path_stack' => [
+            dirname(__DIR__) . '/view',
+        ],
+    ],
     'form_elements' => [
         'invokables' => [
             Form\ConfigForm::class => Form\ConfigForm::class,
+            Form\SparqlForm::class => Form\SparqlForm::class,
+        ],
+    ],
+    'controllers' => [
+        'factories' => [
+            Controller\IndexController::class => Service\Controller\IndexControllerFactory::class,
+        ],
+    ],
+    'router' => [
+        'routes' => [
+            'sparql' => [
+                'type' => \Laminas\Router\Http\Literal::class,
+                'options' => [
+                    'route' => '/sparql',
+                    'defaults' => [
+                        '__NAMESPACE__' => 'Sparql\Controller',
+                        'controller' => Controller\IndexController::class,
+                        'action' => 'sparql',
+                    ],
+                ],
+            ],
         ],
     ],
     'sparql' => [
@@ -43,6 +69,8 @@ return [
                 'arc2',
                 // 'fuseki',
             ],
+            // TODO Manage api credentials for arc2.
+            'sparql_arc2_write_key' => '',
         ],
     ],
 ];

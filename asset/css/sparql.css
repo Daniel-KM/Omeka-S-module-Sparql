@@ -1,0 +1,10 @@
+@media screen {
+    #page-actions button#submit {
+        background-color: #fff;
+    }
+    #form-sparql .inputs label.type-radio,
+    #form-sparql .inputs label.type-radio input[type=radio] {
+        display: inline-block;
+        width: auto;
+    }
+}

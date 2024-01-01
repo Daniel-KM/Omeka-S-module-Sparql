@@ -141,6 +141,19 @@ class ConfigForm extends Form
                 ],
             ])
             ->add([
+                'name' => 'sparql_arc2_write_key',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Write access key for Arc2 (random)', // @translate
+                ],
+                // This value is stored in table triplestore_setting, managed by arc2.
+                'attributes' => [
+                    'id' => 'sparql_arc2_write_key',
+                    'readonly' => 'readonly',
+                    'value' => substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(128))), 0, 24),
+                ],
+            ])
+            ->add([
                 'name' => 'process',
                 'type' => Element\Submit::class,
                 'options' => [
