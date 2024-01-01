@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace SearchSparql;
+namespace Sparql;
 
 if (!class_exists(\Common\TraitModule::class)) {
     require_once dirname(__DIR__) . '/Common/TraitModule.php';
@@ -13,7 +13,7 @@ use Omeka\Module\Exception\ModuleCannotInstallException;
 use Omeka\Stdlib\Message;
 
 /**
- * Search Sparql
+ * Sparql
  *
  * @copyright Daniel Berthereau, 2023-2024
  * @license http://www.cecill.info/licences/Licence_CeCILL_V2.1-en.txt
@@ -68,15 +68,15 @@ class Module extends AbstractModule
         $urlPlugin = $plugins->get('url');
         $messenger = $plugins->get('messenger');
 
-        $configModule = $config['searchsparql']['config'];
+        $configModule = $config['sparql']['config'];
         $args = [
-            'resource_types' => $settings->get('searchsparql_resource_types', $configModule['searchsparql_resource_types']),
-            'resource_query' => $settings->get('searchsparql_resource_query', $configModule['searchsparql_resource_query']),
-            'fields_included' => $settings->get('searchsparql_fields_included', $configModule['searchsparql_fields_included']),
-            'property_whitelist' => $settings->get('searchsparql_property_whitelist', $configModule['searchsparql_property_whitelist']),
-            'property_blacklist' => $settings->get('searchsparql_property_blacklist', $configModule['searchsparql_property_blacklist']),
-            'datatype_whitelist' => $settings->get('searchsparql_datatype_whitelist', $configModule['searchsparql_datatype_whitelist']),
-            'datatype_blacklist' => $settings->get('searchsparql_datatype_blacklist', $configModule['searchsparql_datatype_blacklist']),
+            'resource_types' => $settings->get('sparql_resource_types', $configModule['sparql_resource_types']),
+            'resource_query' => $settings->get('sparql_resource_query', $configModule['sparql_resource_query']),
+            'fields_included' => $settings->get('sparql_fields_included', $configModule['sparql_fields_included']),
+            'property_whitelist' => $settings->get('sparql_property_whitelist', $configModule['sparql_property_whitelist']),
+            'property_blacklist' => $settings->get('sparql_property_blacklist', $configModule['sparql_property_blacklist']),
+            'datatype_whitelist' => $settings->get('sparql_datatype_whitelist', $configModule['sparql_datatype_whitelist']),
+            'datatype_blacklist' => $settings->get('sparql_datatype_blacklist', $configModule['sparql_datatype_blacklist']),
         ];
 
         if (!in_array('html', $args['datatype_blacklist']) || !in_array('xml', $args['datatype_blacklist'])) {
@@ -93,7 +93,7 @@ class Module extends AbstractModule
             : null;
 
         $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
-        $job = $dispatcher->dispatch(\SearchSparql\Job\IndexTriplestore::class, $args, $strategy);
+        $job = $dispatcher->dispatch(\Sparql\Job\IndexTriplestore::class, $args, $strategy);
 
         $message = new Message(
             'Indexing json-ld triplestore in background (%1$sjob #%2$d%3$s, %4$slogs%3$s).', // @translate

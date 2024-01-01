@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace SearchSparql\Form;
+namespace Sparql\Form;
 
 use Laminas\Form\Element;
 use Laminas\Form\Form;
@@ -12,7 +12,7 @@ class ConfigForm extends Form
     {
         $this
             ->add([
-                'name' => 'searchsparql_resource_types',
+                'name' => 'sparql_resource_types',
                 'type' => Element\MultiCheckbox::class,
                 'options' => [
                     'label' => 'Limit indexation to specific resources', // @translate
@@ -23,31 +23,31 @@ class ConfigForm extends Form
                     ],
                 ],
                 'attributes' => [
-                    'id' => 'searchsparql_resource_types',
+                    'id' => 'sparql_resource_types',
                 ],
             ])
             ->add([
-                'name' => 'searchsparql_resource_query',
+                'name' => 'sparql_resource_query',
                 'type' => OmekaElement\Query::class,
                 'options' => [
                     'label' => 'Limit indexation of items with a query', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'searchsparql_resource_query',
+                    'id' => 'sparql_resource_query',
                 ],
             ])
             ->add([
-                'name' => 'searchsparql_resource_private',
+                'name' => 'sparql_resource_private',
                 'type' => Element\Checkbox::class,
                 'options' => [
                     'label' => 'Output private resources and values', // @translate
                 ],
                 'attributes' => [
-                    'id' => 'searchsparql_resource_private',
+                    'id' => 'sparql_resource_private',
                 ],
             ])
             ->add([
-                'name' => 'searchsparql_fields_included',
+                'name' => 'sparql_fields_included',
                 'type' => Element\MultiCheckbox::class,
                 'options' => [
                     'label' => 'Omeka metadata to include', // @translate
@@ -64,11 +64,11 @@ class ConfigForm extends Form
                     ],
                 ],
                 'attributes' => [
-                    'id' => 'searchsparql_fields_included',
+                    'id' => 'sparql_fields_included',
                 ],
             ])
             ->add([
-                'name' => 'searchsparql_property_whitelist',
+                'name' => 'sparql_property_whitelist',
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [
                     'label' => 'Limit indexation to specific properties (white list)', // @translate
@@ -76,14 +76,14 @@ class ConfigForm extends Form
                     'empty_option' => '',
                 ],
                 'attributes' => [
-                    'id' => 'searchsparql_property_whitelist',
+                    'id' => 'sparql_property_whitelist',
                     'class' => 'chosen-select',
                     'multiple' => true,
                     'data-placeholder' => 'Select properties…', // @translate
                 ],
             ])
             ->add([
-                'name' => 'searchsparql_property_blacklist',
+                'name' => 'sparql_property_blacklist',
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [
                     'label' => 'Skip indexation for specific properties (black list)', // @translate
@@ -91,35 +91,35 @@ class ConfigForm extends Form
                     'empty_option' => '',
                 ],
                 'attributes' => [
-                    'id' => 'searchsparql_property_blacklist',
+                    'id' => 'sparql_property_blacklist',
                     'class' => 'chosen-select',
                     'multiple' => true,
                     'data-placeholder' => 'Select properties…', // @translate
                 ],
             ])
             ->add([
-                'name' => 'searchsparql_datatype_whitelist',
+                'name' => 'sparql_datatype_whitelist',
                 'type' => OmekaElement\DataTypeSelect::class,
                 'options' => [
                     'label' => 'Limit indexation to specific data types (white list)', // @translate
                     'empty_option' => '',
                 ],
                 'attributes' => [
-                    'id' => 'searchsparql_datatype_whitelist',
+                    'id' => 'sparql_datatype_whitelist',
                     'class' => 'chosen-select',
                     'multiple' => true,
                     'data-placeholder' => 'Select data types…', // @translate
                 ],
             ])
             ->add([
-                'name' => 'searchsparql_datatype_blacklist',
+                'name' => 'sparql_datatype_blacklist',
                 'type' => OmekaElement\DataTypeSelect::class,
                 'options' => [
                     'label' => 'Skip indexation for specific data types (black list)', // @translate
                     'empty_option' => '',
                 ],
                 'attributes' => [
-                    'id' => 'searchsparql_datatype_blacklist',
+                    'id' => 'sparql_datatype_blacklist',
                     'class' => 'chosen-select',
                     'multiple' => true,
                     'data-placeholder' => 'Select data types…', // @translate
@@ -141,27 +141,27 @@ class ConfigForm extends Form
         $inputFilter = $this->getInputFilter();
         $inputFilter
             ->add([
-                'name' => 'searchsparql_resource_types',
+                'name' => 'sparql_resource_types',
                 'required' => false,
             ])
             ->add([
-                'name' => 'searchsparql_fields_included',
+                'name' => 'sparql_fields_included',
                 'required' => false,
             ])
             ->add([
-                'name' => 'searchsparql_property_whitelist',
+                'name' => 'sparql_property_whitelist',
                 'required' => false,
             ])
             ->add([
-                'name' => 'searchsparql_property_blacklist',
+                'name' => 'sparql_property_blacklist',
                 'required' => false,
             ])
             ->add([
-                'name' => 'searchsparql_datatype_whitelist',
+                'name' => 'sparql_datatype_whitelist',
                 'required' => false,
             ])
             ->add([
-                'name' => 'searchsparql_datatype_blacklist',
+                'name' => 'sparql_datatype_blacklist',
                 'required' => false,
             ])
         ;

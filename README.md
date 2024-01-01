@@ -1,13 +1,13 @@
-Search Sparql (module for Omeka S)
-==================================
+Sparql (module for Omeka S)
+===========================
 
 > __New versions of this module and support for Omeka S version 3.0 and above
 > are available on [GitLab], which seems to respect users and privacy better
 > than the previous repository.__
 
-[Search Sparql] is a module for [Omeka S] that allows to query json-ld Omeka S
-database via the Sparql language. The query can be built via a text editor of
-via a clickodrome.
+[Sparql] is a module for [Omeka S] that allows to query json-ld Omeka S database
+via the Sparql language. The query can be built via a text editor of via a
+clickodrome.
 
 The main interest of a sparql search agains api or sql search is that it is a
 much more global search: queries are not limited to the database, but to all the
@@ -33,14 +33,14 @@ use and init the source.
 
 * From the zip
 
-Download the last release [SearchSparql.zip] from the list of releases (the
+Download the last release [Sparql.zip] from the list of releases (the
 master does not contain the dependency), and uncompress it in the `modules`
 directory.
 
 * From the source and for development
 
 If the module was installed from the source, rename the name of the folder of
-the module to `SearchSparql`, go to the root module, and run:
+the module to `Sparql`, go to the root module, and run:
 
 ```sh
 composer install --no-dev
@@ -144,13 +144,13 @@ This module was developed for the future digital library [Manioc] of the Univers
 des Antilles et de la Guyane, currently managed via Greenstone.
 
 
-[Search Sparql]: https://gitlab.com/Daniel-KM/Omeka-S-module-SearchSparql
+[Sparql]: https://gitlab.com/Daniel-KM/Omeka-S-module-Sparql
 [Omeka S]: https://omeka.org/s
 [Value Suggest]: https://omeka.org/s/modules/ValueSuggest
 [Apache Jena Fuseki]: https://jena.apache.org/documentation/fuseki2
 [Installing a module]: https://omeka.org/s/docs/user-manual/modules/
-[SearchSparql.zip]: https://github.com/Daniel-KM/Omeka-S-module-SearchSparql/releases
-[module issues]: https://gitlab.com/Daniel-KM/Omeka-S-module-SearchSparql/issues
+[Sparql.zip]: https://github.com/Daniel-KM/Omeka-S-module-Sparql/releases
+[module issues]: https://gitlab.com/Daniel-KM/Omeka-S-module-Sparql/issues
 [Common]: https://gitlab.com/Daniel-KM/Omeka-S-module-Common
 [Omeka S database]: http://henripoincare.fr/
 [Nicolas Lasolle]: https://github.com/nlasolle

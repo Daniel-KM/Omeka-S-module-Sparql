@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace SearchSparql\Job;
+namespace Sparql\Job;
 
 use EasyRdf\Graph;
 use EasyRdf\RdfNamespace;
@@ -157,12 +157,12 @@ class IndexTriplestore extends AbstractJob
         $config = $services->get('Config');
         $settings = $services->get('Omeka\Settings');
         $easyMeta = $services->get('EasyMeta');
-        $configModule = $config['searchsparql']['config'];
+        $configModule = $config['sparql']['config'];
 
         // The reference id is the job id for now.
         if (class_exists('Log\Stdlib\PsrMessage')) {
             $referenceIdProcessor = new \Laminas\Log\Processor\ReferenceId();
-            $referenceIdProcessor->setReferenceId('searchsparql/indextriplestore/job_' . $this->job->getId());
+            $referenceIdProcessor->setReferenceId('sparql/index_triplestore/job_' . $this->job->getId());
             $this->logger->addProcessor($referenceIdProcessor);
         }
 
@@ -170,9 +170,9 @@ class IndexTriplestore extends AbstractJob
 
         // Init options.
 
-        $this->resourceTypes = $this->getArg('resource_types', $settings->get('searchsparql_resource_types', $configModule['searchsparql_resource_types']));
+        $this->resourceTypes = $this->getArg('resource_types', $settings->get('sparql_resource_types', $configModule['sparql_resource_types']));
 
-        $this->resourceQuery = $this->getArg('resource_query', $settings->get('searchsparql_resource_query', $configModule['searchsparql_resource_query']));
+        $this->resourceQuery = $this->getArg('resource_query', $settings->get('sparql_resource_query', $configModule['sparql_resource_query']));
         if ($this->resourceQuery) {
             $query = [];
             parse_str((string) $this->resourceQuery, $query);
@@ -181,22 +181,22 @@ class IndexTriplestore extends AbstractJob
             $this->resourceQuery = [];
         }
 
-        $this->resourcePublicOnly = !$this->getArg('resource_private', $settings->get('searchsparql_resource_private', $configModule['searchsparql_resource_private']));
+        $this->resourcePublicOnly = !$this->getArg('resource_private', $settings->get('sparql_resource_private', $configModule['sparql_resource_private']));
         if ($this->resourcePublicOnly) {
             $this->resourceQuery['is_public'] = true;
         }
 
         $this->properties = $easyMeta->propertyIds();
 
-        $this->propertyWhiteList = $this->getArg('property_whitelist', $settings->get('searchsparql_property_whitelist', $configModule['searchsparql_property_whitelist']));
+        $this->propertyWhiteList = $this->getArg('property_whitelist', $settings->get('sparql_property_whitelist', $configModule['sparql_property_whitelist']));
         $this->propertyWhiteList = array_intersect_key(array_combine($this->propertyWhiteList, $this->propertyWhiteList), $this->properties);
 
-        $this->propertyBlackList = $this->getArg('property_blacklist', $settings->get('searchsparql_property_blacklist', $configModule['searchsparql_property_blacklist']));
+        $this->propertyBlackList = $this->getArg('property_blacklist', $settings->get('sparql_property_blacklist', $configModule['sparql_property_blacklist']));
         $this->propertyBlackList = array_intersect_key(array_combine($this->propertyBlackList, $this->propertyBlackList), $this->properties);
 
         $this->initPrefixes();
 
-        $fieldsIncluded = $this->getArg('fields_included', $settings->get('searchsparql_fields_included', $configModule['searchsparql_fields_included']));
+        $fieldsIncluded = $this->getArg('fields_included', $settings->get('sparql_fields_included', $configModule['sparql_fields_included']));
         $pos = array_search('rdfs:label', $fieldsIncluded);
         if ($pos !== false) {
             $fieldsIncluded[$pos] = RdfNamespace::prefixOfUri('http://www.w3.org/2000/01/rdf-schema#') . ':label';
@@ -206,9 +206,9 @@ class IndexTriplestore extends AbstractJob
 
         $this->initPrefixesShort();
 
-        $this->dataTypeWhiteList = $this->getArg('datatype_whitelist', $settings->get('searchsparql_datatype_whitelist', $configModule['searchsparql_datatype_whitelist']));
+        $this->dataTypeWhiteList = $this->getArg('datatype_whitelist', $settings->get('sparql_datatype_whitelist', $configModule['sparql_datatype_whitelist']));
         $this->dataTypeWhiteList = array_combine($this->dataTypeWhiteList, $this->dataTypeWhiteList);
-        $this->dataTypeBlackList = $this->getArg('datatype_blacklist', $settings->get('searchsparql_datatype_blacklist', $configModule['searchsparql_datatype_blacklist']));
+        $this->dataTypeBlackList = $this->getArg('datatype_blacklist', $settings->get('sparql_datatype_blacklist', $configModule['sparql_datatype_blacklist']));
         $this->dataTypeBlackList = array_combine($this->dataTypeBlackList, $this->dataTypeBlackList);
 
         // Prepare output path.

@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace SearchSparql;
+namespace Sparql;
 
 return [
     'form_elements' => [
@@ -8,16 +8,16 @@ return [
             Form\ConfigForm::class => Form\ConfigForm::class,
         ],
     ],
-    'searchsparql' => [
+    'sparql' => [
         'config' => [
-            'searchsparql_resource_types' => [
+            'sparql_resource_types' => [
                 'item_sets',
                 'items',
                 // 'media',
             ],
-            'searchsparql_resource_query' => '',
-            'searchsparql_resource_private' => false,
-            'searchsparql_fields_included' => [
+            'sparql_resource_query' => '',
+            'sparql_resource_private' => false,
+            'sparql_fields_included' => [
                 'o:resource_template',
                 // 'o:is_public',
                 // 'o:owner',
@@ -25,16 +25,16 @@ return [
                 // 'o:title',
                 'rdfs:label',
             ],
-            'searchsparql_property_whitelist' => [
+            'sparql_property_whitelist' => [
             ],
-            'searchsparql_property_blacklist' => [
+            'sparql_property_blacklist' => [
                 'dcterms:tableOfContents',
                 'bibo:content',
                 'extracttext:extracted_text',
             ],
-            'searchsparql_datatype_whitelist' => [
+            'sparql_datatype_whitelist' => [
             ],
-            'searchsparql_datatype_blacklist' => [
+            'sparql_datatype_blacklist' => [
                 'html',
                 'xml',
             ],
