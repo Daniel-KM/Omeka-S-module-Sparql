@@ -72,6 +72,7 @@ class Module extends AbstractModule
         $args = [
             'resource_types' => $settings->get('searchsparql_resource_types', $configModule['searchsparql_resource_types']),
             'resource_query' => $settings->get('searchsparql_resource_query', $configModule['searchsparql_resource_query']),
+            'fields_included' => $settings->get('searchsparql_fields_included', $configModule['searchsparql_fields_included']),
             'property_whitelist' => $settings->get('searchsparql_property_whitelist', $configModule['searchsparql_property_whitelist']),
             'property_blacklist' => $settings->get('searchsparql_property_blacklist', $configModule['searchsparql_property_blacklist']),
         ];

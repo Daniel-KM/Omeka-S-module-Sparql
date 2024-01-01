@@ -37,6 +37,27 @@ class ConfigForm extends Form
                 ],
             ])
             ->add([
+                'name' => 'searchsparql_fields_included',
+                'type' => Element\MultiCheckbox::class,
+                'options' => [
+                    'label' => 'Omeka metadata to include', // @translate
+                    'value_options' => [
+                        'o:resource_template' => 'Resource template', // @translate
+                        'o:is_public' => 'Visibility', // @translate
+                        'o:owner' => 'Owner',
+                        // The class is automatically included as type of the
+                        // resource according to json-ld representation.
+                        // 'o:resource_class' => $resourceClass,
+                        'o:thumbnail' => 'Thumbnail', // @translate
+                        'o:title' => 'Title', // @translate
+                        'rdfs:label' => 'Title as rdf label', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'searchsparql_fields_included',
+                ],
+            ])
+            ->add([
                 'name' => 'searchsparql_property_whitelist',
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [
@@ -83,6 +104,10 @@ class ConfigForm extends Form
         $inputFilter
             ->add([
                 'name' => 'searchsparql_resource_types',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'searchsparql_fields_included',
                 'required' => false,
             ])
             ->add([

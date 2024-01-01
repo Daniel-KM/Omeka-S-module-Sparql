@@ -16,6 +16,14 @@ return [
                 // 'media',
             ],
             'searchsparql_resource_query' => '',
+            'searchsparql_fields_included' => [
+                'o:resource_template',
+                // 'o:is_public',
+                // 'o:owner',
+                'o:thumbnail',
+                // 'o:title',
+                'rdfs:label',
+            ],
             'searchsparql_property_whitelist' => [
             ],
             'searchsparql_property_blacklist' => [

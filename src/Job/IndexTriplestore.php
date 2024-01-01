@@ -52,19 +52,6 @@ class IndexTriplestore extends AbstractJob
     protected $properties;
 
     /**
-     * RDF resource properties to keep in all cases.
-     *
-     * @var array
-     */
-    protected $propertyMeta = [
-        '@context' => null,
-        '@id' => null,
-        '@type' => null,
-        'o:resource_class' => null,
-        'o:resource_template' => null,
-    ];
-
-    /**
      * Specific property prefixes.
      *
      * @see \EasyRdf\RdfNamespace::initial_namespaces
@@ -87,6 +74,17 @@ class IndexTriplestore extends AbstractJob
     ];
 
     /**
+     * RDF resource properties to keep in all cases.
+     *
+     * @var array
+     */
+    protected $propertyMeta = [
+        '@context' => null,
+        '@id' => null,
+        '@type' => null,
+    ];
+
+    /**
      * @var array
      */
     protected $propertyBlacklist;
@@ -95,6 +93,11 @@ class IndexTriplestore extends AbstractJob
      * @var array
      */
     protected $propertyWhitelist;
+
+    /**
+     * @var string
+     */
+    protected $rdfsLabel;
 
     /**
      * @var array
@@ -159,6 +162,14 @@ class IndexTriplestore extends AbstractJob
         $this->propertyBlacklist = array_intersect_key(array_combine($this->propertyBlacklist, $this->propertyBlacklist), $this->properties);
 
         $this->initPrefixes();
+
+        $fieldsIncluded = $this->getArg('fields_included', $settings->get('searchsparql_fields_included', $configModule['searchsparql_fields_included']));
+        $pos = array_search('rdfs:label', $fieldsIncluded);
+        if ($pos !== false) {
+            $fieldsIncluded[$pos] = RdfNamespace::prefixOfUri('http://www.w3.org/2000/01/rdf-schema#') . ':label';
+            $this->rdfsLabel = $fieldsIncluded[$pos];
+        }
+        $this->propertyMeta += array_flip($fieldsIncluded);
 
         // Prepare output path.
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
@@ -303,6 +314,11 @@ class IndexTriplestore extends AbstractJob
     {
         // Don't use jsonSerialize(), that serialize only first level.
         $json = json_decode(json_encode($resource), true);
+
+        // Manage the special case of rdfs:label.
+        if ($this->rdfsLabel) {
+            $json[$this->rdfsLabel][] = $json['o:title'] ?? $resource->displayTitle();
+        }
 
         // Don't store specific metadata.
         $json = $this->propertyWhitelist
