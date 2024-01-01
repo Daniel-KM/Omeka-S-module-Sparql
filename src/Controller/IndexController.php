@@ -63,6 +63,14 @@ class IndexController extends AbstractActionController
                     :null;
                 $format = ($data['format'] ?? null) === 'text' ? 'text' : 'html';
                 if ($query) {
+                    // TODO Check prepending prefixes: arc2 should work without them.
+                    // Prepend all prefixes: only common ones are set.
+                    $prefixes = '';
+                    foreach ($namespaces as $prefix => $iri) {
+                        // Only the addition of prefixes in the query works.
+                        $triplestore->setPrefix($prefix, $iri);
+                        $prefixes .= "PREFIX $prefix: <$iri>";
+                    }
                     try {
                         $resultArc2 = $triplestore->query($prefixes . $query);
                         $errors = $triplestore->getErrors();
