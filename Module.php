@@ -6,11 +6,11 @@ if (!class_exists(\Common\TraitModule::class)) {
     require_once dirname(__DIR__) . '/Common/TraitModule.php';
 }
 
+use Common\Stdlib\PsrMessage;
 use Common\TraitModule;
 use Laminas\Mvc\Controller\AbstractController;
 use Omeka\Module\AbstractModule;
 use Omeka\Module\Exception\ModuleCannotInstallException;
-use Omeka\Stdlib\Message;
 
 /**
  * Sparql
@@ -33,11 +33,11 @@ class Module extends AbstractModule
         $translator = $services->get('MvcTranslator');
 
         if (!$this->checkDestinationDir($basePath . '/triplestore')) {
-            $message = new Message(
-                $translator->translate('The directory "%s" is not writeable.'), // @translate
-                $basePath . '/triplestore'
+            $message = new PsrMessage(
+                'The directory "{directory}" is not writeable.', // @translate
+                ['directory' => $basePath . '/triplestore']
             );
-            throw new ModuleCannotInstallException((string) $message);
+            throw new ModuleCannotInstallException((string) $message->setTranslator($translator));
         }
     }
 
@@ -80,7 +80,7 @@ class Module extends AbstractModule
         ];
 
         if (!in_array('html', $args['datatype_blacklist']) || !in_array('xml', $args['datatype_blacklist'])) {
-            $message = new Message(
+            $message = new PsrMessage(
                 'The data types html and xml are currently not supported and converted into literal.' // @translate
             );
             $messenger->addWarning($message);
@@ -95,19 +95,21 @@ class Module extends AbstractModule
         $dispatcher = $services->get(\Omeka\Job\Dispatcher::class);
         $job = $dispatcher->dispatch(\Sparql\Job\IndexTriplestore::class, $args, $strategy);
 
-        $message = new Message(
-            'Indexing json-ld triplestore in background (%1$sjob #%2$d%3$s, %4$slogs%3$s).', // @translate
-            sprintf('<a href="%s">',
-                htmlspecialchars($urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'id' => $job->getId()]))
-            ),
-            $job->getId(),
-            '</a>',
-            sprintf('<a href="%s">',
-                htmlspecialchars($this->isModuleActive('Log')
-                    ? $urlPlugin->fromRoute('admin/log', [], ['query' => ['job_id' => $job->getId()]])
-                    : $urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'id' => $job->getId(), 'action' => 'log'])
+        $message = new PsrMessage(
+            'Indexing json-ld triplestore in background ({link_job}job #{job_id}{link_end}, {link_log}logs{link_end}).', // @translate
+            [
+                'link_job' => sprintf('<a href="%s">',
+                    htmlspecialchars($urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'id' => $job->getId()]))
+                ),
+                'job_id' => $job->getId(),
+                'link_end' => '</a>',
+                'link_log' => sprintf('<a href="%s">',
+                    htmlspecialchars($this->isModuleActive('Log')
+                        ? $urlPlugin->fromRoute('admin/log', [], ['query' => ['job_id' => $job->getId()]])
+                        : $urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'id' => $job->getId(), 'action' => 'log'])
+                    )
                 )
-            )
+            ]
         );
         $message->setEscapeHtml(false);
         $messenger->addSuccess($message);

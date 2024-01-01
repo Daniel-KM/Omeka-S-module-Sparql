@@ -6,7 +6,6 @@ use EasyRdf\Graph;
 use EasyRdf\RdfNamespace;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 use Omeka\Job\AbstractJob;
-use Omeka\Stdlib\Message;
 
 class IndexTriplestore extends AbstractJob
 {
@@ -160,11 +159,9 @@ class IndexTriplestore extends AbstractJob
         $configModule = $config['sparql']['config'];
 
         // The reference id is the job id for now.
-        if (class_exists('Log\Stdlib\PsrMessage')) {
-            $referenceIdProcessor = new \Laminas\Log\Processor\ReferenceId();
-            $referenceIdProcessor->setReferenceId('sparql/index_triplestore/job_' . $this->job->getId());
-            $this->logger->addProcessor($referenceIdProcessor);
-        }
+        $referenceIdProcessor = new \Laminas\Log\Processor\ReferenceId();
+        $referenceIdProcessor->setReferenceId('sparql/index_triplestore/job_' . $this->job->getId());
+        $this->logger->addProcessor($referenceIdProcessor);
 
         $this->datasetName = 'triplestore';
 
@@ -217,27 +214,27 @@ class IndexTriplestore extends AbstractJob
         file_put_contents($this->filepath, '');
 
         if (in_array('media', $this->resourceTypes) && !in_array('items', $this->resourceTypes)) {
-            $this->logger->warn(new Message(
-                'Sparql dataset "%1$s": Medias cannot be indexed without indexing items.', // @translate
-                $this->datasetName
-            ));
+            $this->logger->warn(
+                'Sparql dataset "{dataset}": Medias cannot be indexed without indexing items.', // @translate
+                ['dataset' => $this->datasetName]
+            );
         }
 
         $timeStart = microtime(true);
 
-        $this->logger->notice(new Message(
-            'Sparql dataset "%1$s": start of indexing', // @translate
-            $this->datasetName
-        ));
+        $this->logger->notice(
+            'Sparql dataset "{dataset}": start of indexing', // @translate
+            ['dataset' => $this->datasetName]
+        );
 
         $this->processindex();
 
         $timeTotal = (int) (microtime(true) - $timeStart);
 
-        $this->logger->notice(new Message(
-            'Sparql dataset "%1$s": end of indexing. %2$s resources indexed. Execution time: %3$s seconds.', // @translate
-            $this->datasetName, $this->totalResults, $timeTotal
-        ));
+        $this->logger->notice(
+            'Sparql dataset "{dataset}": end of indexing. {total} resources indexed. Execution time: {duration} seconds.', // @translate
+            ['dataset' => $this->datasetName, 'total' => $this->totalResults, 'duration' => $timeTotal]
+        );
     }
 
     /**
@@ -263,10 +260,10 @@ class IndexTriplestore extends AbstractJob
             $response = $this->api->search('item_sets', $queryVisibility, ['returnScalar' => 'id']);
             $total = $response->getTotalResults();
 
-            $this->logger->info(new Message(
-                'Sparql dataset "%1$s": indexing %2$d item sets.', // @translate
-                $this->datasetName, $total
-            ));
+            $this->logger->info(
+                'Sparql dataset "{dataset}": indexing {total} item sets.', // @translate
+                ['dataset' => $this->datasetName, 'total' => $total]
+            );
 
             $i = 0;
             foreach ($response->getContent() as $id) {
@@ -275,10 +272,10 @@ class IndexTriplestore extends AbstractJob
                 $this->storeResource($itemSet);
                 ++$this->totalResults;
                 if (++$i % 100 === 0) {
-                    $this->logger->info(new Message(
-                        'Sparql dataset "%1$s": indexed %2$d/%3$d item sets.', // @translate
-                        $this->datasetName, $i, $total
-                    ));
+                    $this->logger->info(
+                        'Sparql dataset "{dataset}": indexed {count}/{total} item sets.', // @translate
+                        ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
+                    );
                     $this->entityManager->clear();
                 }
             }
@@ -298,20 +295,20 @@ class IndexTriplestore extends AbstractJob
                 /*
                 $ids = $response->getContent();
                 $totalMedias = $this->api->search('media', ['item_id' => $ids])->getTotalResults();
-                $this->logger->info(new Message(
-                    'Sparql dataset "%1$s": indexing %2$d items and %3$d medias.', // @translate
-                    $this->datasetName, $total, $totalMedias
-                ));
+                $this->logger->info(
+                    'Sparql dataset "{dataset}": indexing {total} items and {total_medias} medias.', // @translate
+                    ['dataset' => $this->datasetName, 'total' => $total, 'total_medias' => $totalMedias]
+                );
                 */
-                $this->logger->info(new Message(
-                    'Sparql dataset "%1$s": indexing %2$d items and attached medias.', // @translate
-                    $this->datasetName, $total
-                ));
+                $this->logger->info(
+                    'Sparql dataset "{dataset}": indexing {total} items and attached medias.', // @translate
+                    ['dataset' => $this->datasetName, 'total' => $total]
+                );
             } else {
-                $this->logger->info(new Message(
-                    'Sparql dataset "%1$s": indexing %2$d items.', // @translate
-                    $this->datasetName, $total
-                ));
+                $this->logger->info(
+                    'Sparql dataset "{dataset}": indexing {total} items.', // @translate
+                    ['dataset' => $this->datasetName, 'total' => $total]
+                );
             }
 
             $i = 0;
@@ -330,10 +327,10 @@ class IndexTriplestore extends AbstractJob
                 }
                 ++$this->totalResults;
                 if (++$i % 100 === 0) {
-                    $this->logger->info(new Message(
-                        'Sparql dataset "%1$s": indexed %2$d/%3$d items.', // @translate
-                        $this->datasetName, $i, $total
-                    ));
+                    $this->logger->info(
+                        'Sparql dataset "{dataset}": indexed {count}/{total} items.', // @translate
+                        ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
+                    );
                     $this->entityManager->clear();
                 }
             }
