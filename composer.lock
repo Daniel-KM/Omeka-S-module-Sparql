@@ -1,0 +1,93 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "75e86b998769026bd8929c388467ef41",
+    "packages": [
+        {
+            "name": "semsol/arc2",
+            "version": "3.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/semsol/arc2.git",
+                "reference": "8ac880c687777a81c503c873be90913f26e77c5d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/semsol/arc2/zipball/8ac880c687777a81c503c873be90913f26e77c5d",
+                "reference": "8ac880c687777a81c503c873be90913f26e77c5d",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "php": "^8.0.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3",
+                "phpunit/phpunit": "^9"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "./ARC2.php",
+                    "./ARC2_Class.php",
+                    "./ARC2_getFormat.php",
+                    "./ARC2_getPreferredFormat.php",
+                    "./ARC2_Graph.php",
+                    "./ARC2_Reader.php",
+                    "./ARC2_Resource.php"
+                ],
+                "psr-4": {
+                    "ARC2\\": [
+                        "src/ARC2/"
+                    ]
+                },
+                "classmap": [
+                    "parsers/",
+                    "serializers/",
+                    "store/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0-or-later",
+                "W3C"
+            ],
+            "authors": [
+                {
+                    "name": "Benji Nowack",
+                    "homepage": "http://bnowack.de/",
+                    "role": "Creator, Developer"
+                },
+                {
+                    "name": "Konrad Abicht",
+                    "email": "hi@inspirito.de",
+                    "homepage": "https://inspirito.de",
+                    "role": "Maintainer, Developer"
+                }
+            ],
+            "description": "ARC2 is a PHP library for working with RDF. It also provides a MySQL-based triplestore with SPARQL support.",
+            "homepage": "https://github.com/semsol/arc2",
+            "keywords": [
+                "RDF",
+                "sparql"
+            ],
+            "support": {
+                "issues": "https://github.com/semsol/arc2/issues",
+                "source": "https://github.com/semsol/arc2/tree/3.0.0"
+            },
+            "time": "2023-09-13T07:18:31+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": [],
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": [],
+    "platform-dev": [],
+    "plugin-api-version": "2.3.0"
+}

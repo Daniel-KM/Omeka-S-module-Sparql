@@ -1,0 +1,19 @@
+{
+    "name": "daniel-km/omeka-s-module-sparql",
+    "type": "library",
+    "require": {
+        "semsol/arc2": "^3.0"
+    },
+    "license": "cecill-2.1",
+    "autoload": {
+        "psr-4": {
+            "DanielKm\\OmekaSModuleSparql\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Daniel Berthereau",
+            "email": "Daniel.git@Berthereau.net"
+        }
+    ]
+}
