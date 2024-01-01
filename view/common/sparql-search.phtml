@@ -7,9 +7,10 @@
  * @var \EasyRdf\Sparql\Result|\EasyRdf\Graph|null $resultEasyRdf Unused currently.
  * @var string $query
  * @var string $format "text" or "html"
+ * @var string $interface "default" or "yasgui"
  * @var array $namespaces
  * @var string $errorMessage
- * @var array $options Passed options from the helper.
+ * And passed options from the helper.
  */
 
 // The form uses the format of Omeka / item / search.
@@ -21,20 +22,47 @@ $translate = $plugins->get('translate');
 $escapeAttr = $plugins->get('escapeHtmlAttr');
 
 $this->htmlElement('body')->appendAttribute('class', 'sparql');
-$this->headLink()->appendStylesheet($assetUrl('css/sparql.css', 'Sparql'));
+$this->headLink()
+    ->appendStylesheet($assetUrl('css/sparql.css', 'Sparql'));
+
+if ($interface === 'yasgui') {
+    $prefixes = '';
+    foreach ($namespaces as $prefix => $iri) $prefixes .= "PREFIX $prefix: <$iri>\n";
+    $script = <<<'JS'
+const sparqlEndpoint = %1$s;
+const sparqlQuery = %2$s;
+JS;
+    $sparqlQuery = <<<'SPARQL'
+SELECT * WHERE {
+  ?sub ?pred ?obj .
+} LIMIT 10
+SPARQL;
+    $this->headLink()
+        ->appendStylesheet($assetUrl('vendor/yasgui/yasgui.min.css', 'Sparql'));
+    $this->headScript()
+        ->appendScript(sprintf($script, json_encode($plugins->get('url')('sparql', [], ['force_canonical' => true]), 320), json_encode($prefixes . "\n" . $sparqlQuery), 320))
+        ->appendFile($assetUrl('vendor/yasgui/yasgui.min.js', 'Sparql'), 'text/javascript', ['defer' => 'defer'])
+        ->appendFile($assetUrl('js/sparql.js', 'Sparql'), 'text/javascript', ['defer' => 'defer']);
+}
 
 $matches = [];
 $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~';
 ?>
+
+<?php if ($interface === 'yasgui'): ?>
+
+  <div id="yasgui"></div>
+
+<?php else: ?>
 
 <div class="field namespaces">
     <label><?= $translate('Namespaces') ?></label>
     <a href="#" class="expand" aria-label="<?= $translate('Expand') ?>" title="<?= $translate('Expand') ?>"></a>
     <div class="collapsible">
         <dl>
-            <?php foreach ($namespaces as $prefix => $uri): ?>
+            <?php foreach ($namespaces as $prefix => $iri): ?>
             <dt><?= $escape($prefix) ?></dt>
-            <dd><?= $escape($uri) ?></dd>
+            <dd><?= $escape($iri) ?></dd>
             <?php endforeach; ?>
         </dl>
     </div>
@@ -142,5 +170,7 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
             </tbody>
         </table>
     </div>
+
+<?php endif; ?>
 
 <?php endif; ?>

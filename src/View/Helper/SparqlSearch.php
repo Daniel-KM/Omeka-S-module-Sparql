@@ -82,11 +82,19 @@ class SparqlSearch extends AbstractHelper
      * - template (string)
      * - method (string): get (default) or post
      * - sparql_array (bool): return results according to sparl protocol v1.1.
+     * - interface (string): "default" (default) or "yasgui".
      * @return string|array Html string or result array.
      */
     public function __invoke(array $options = [])
     {
-        $sparqlArray = !empty($options['sparql_array']);
+        $options += [
+            'template' => null,
+            'method' => null,
+            'sparql_array' => null,
+            'interface' => null,
+        ];
+
+        $sparqlArray = (bool) $options['sparql_array'];
 
         /** @var \ARC2_Store $triplestore */
         $triplestore = $this->getSparqlTriplestore($sparqlArray);
@@ -97,7 +105,6 @@ class SparqlSearch extends AbstractHelper
         $view = $this->getView();
 
         $result = $this->sparqlQueryTriplestore($triplestore);
-        $result['options'] = $options;
 
         if (!empty($options['method'])) {
             $result['form']->setAttribute('method', $options['method']);
@@ -107,6 +114,7 @@ class SparqlSearch extends AbstractHelper
             return $result;
         }
 
+        $result += $options;
         unset($result['triplestore']);
 
         $template = empty($options['template']) ? self::PARTIAL_NAME : $options['template'];

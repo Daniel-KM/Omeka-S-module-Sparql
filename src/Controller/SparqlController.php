@@ -31,6 +31,7 @@ class SparqlController extends AbstractActionController
             /** @var \Sparql\Form\SparqlForm $form */
             $form = $result['form'];
             $form->remove('format');
+            $result['interface'] = 'default';
             return new ViewModel($result);
         }
 

@@ -43,4 +43,7 @@
     .result-html span.language {
         user-select: none;
     }
+    #yasgui .yasgui .autocompleteWrapper {
+        display: none !important;
+    }
 }

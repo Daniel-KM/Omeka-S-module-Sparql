@@ -2,6 +2,7 @@
 
 namespace Sparql\Form;
 
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 
@@ -18,6 +19,20 @@ class SparqlFieldset extends Fieldset
                 ],
                 'attributes' => [
                     'id' => 'sparql_heading',
+                ],
+            ])
+            ->add([
+                'name' => 'o:block[__blockIndex__][o:data][interface]',
+                'type' => CommonElement\OptionalRadio::class,
+                'options' => [
+                    'label' => 'Interface', // @translate
+                    'value_options' => [
+                        'default' => 'Simple', // @translate
+                        'yasgui' => 'Yasgui', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'sparql_yasgui',
                 ],
             ])
         ;
