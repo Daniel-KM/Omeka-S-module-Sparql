@@ -16,6 +16,7 @@ return [
                 // 'media',
             ],
             'searchsparql_resource_query' => '',
+            'searchsparql_resource_private' => false,
             'searchsparql_fields_included' => [
                 'o:resource_template',
                 // 'o:is_public',

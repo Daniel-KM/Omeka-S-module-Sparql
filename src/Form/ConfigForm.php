@@ -37,6 +37,16 @@ class ConfigForm extends Form
                 ],
             ])
             ->add([
+                'name' => 'searchsparql_resource_private',
+                'type' => Element\Checkbox::class,
+                'options' => [
+                    'label' => 'Output private resources and values', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'searchsparql_resource_private',
+                ],
+            ])
+            ->add([
                 'name' => 'searchsparql_fields_included',
                 'type' => Element\MultiCheckbox::class,
                 'options' => [

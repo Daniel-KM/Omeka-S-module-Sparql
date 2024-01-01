@@ -122,6 +122,11 @@ class IndexTriplestore extends AbstractJob
     protected $rdfsLabel;
 
     /**
+     * @var bool
+     */
+    protected $resourcePublicOnly;
+
+    /**
      * @var array
      */
     protected $resourceQuery;
@@ -174,6 +179,11 @@ class IndexTriplestore extends AbstractJob
             $this->resourceQuery = $query;
         } else {
             $this->resourceQuery = [];
+        }
+
+        $this->resourcePublicOnly = !$this->getArg('resource_private', $settings->get('searchsparql_resource_private', $configModule['searchsparql_resource_private']));
+        if ($this->resourcePublicOnly) {
+            $this->resourceQuery['is_public'] = true;
         }
 
         $this->properties = $easyMeta->propertyIds();
@@ -247,8 +257,10 @@ class IndexTriplestore extends AbstractJob
 
         // Step 2: adding item sets.
 
+        $queryVisibility = $this->resourcePublicOnly ? ['is_public' => true] : [];
+
         if (in_array('item_sets', $this->resourceTypes)) {
-            $response = $this->api->search('item_sets', [], ['returnScalar' => 'id']);
+            $response = $this->api->search('item_sets', $queryVisibility, ['returnScalar' => 'id']);
             $total = $response->getTotalResults();
 
             $this->logger->info(new Message(
@@ -283,10 +295,17 @@ class IndexTriplestore extends AbstractJob
             $total = $response->getTotalResults();
 
             if ($indexMedia) {
-                $totalMedias = $this->api->search('media')->getTotalResults();
+                /*
+                $ids = $response->getContent();
+                $totalMedias = $this->api->search('media', ['item_id' => $ids])->getTotalResults();
                 $this->logger->info(new Message(
                     'Sparql dataset "%1$s": indexing %2$d items and %3$d medias.', // @translate
                     $this->datasetName, $total, $totalMedias
+                ));
+                */
+                $this->logger->info(new Message(
+                    'Sparql dataset "%1$s": indexing %2$d items and attached medias.', // @translate
+                    $this->datasetName, $total
                 ));
             } else {
                 $this->logger->info(new Message(
@@ -302,6 +321,9 @@ class IndexTriplestore extends AbstractJob
                 $this->storeResource($item);
                 if ($indexMedia) {
                     foreach ($item->media() as $media)  {
+                        if ($this->resourcePublicOnly && !$media->isPublic()) {
+                            continue;
+                        }
                         $this->storeResource($media);
                         ++$this->totalResults;
                     }
@@ -347,17 +369,24 @@ class IndexTriplestore extends AbstractJob
             'html' => 'html',
             'xml' => 'xml',
         ];
-        if ($this->dataTypeWhiteList
+        if ($this->resourcePublicOnly
+            || $this->dataTypeWhiteList
             || $this->dataTypeBlackList
             || count(array_intersect_key($skips, $this->dataTypeBlackList)) !== count($skips)
         ) {
             foreach (array_keys(array_intersect_key($this->properties, $json)) as $property) {
                 foreach ($json[$property] as $key => $value) {
+                    if ($this->resourcePublicOnly && !$value['is_public']) {
+                        unset($json[$property][$key]);
+                        continue;
+                    }
                     if ($this->dataTypeWhiteList && !isset($this->dataTypeWhiteList[$value['type']])) {
                         unset($json[$property][$key]);
+                        continue;
                     }
                     if ($this->dataTypeBlackList && isset($this->dataTypeBlackList[$value['type']])) {
                         unset($json[$property][$key]);
+                        continue;
                     }
                     if (in_array($value['type'], $skips)) {
                         $json[$property][$key]['type'] = 'literal';
