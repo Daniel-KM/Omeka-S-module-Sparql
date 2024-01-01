@@ -343,7 +343,14 @@ class IndexTriplestore extends AbstractJob
             $json = array_diff_key($json, $this->propertyBlackList);
         }
 
-        if ($this->dataTypeWhiteList || $this->dataTypeBlackList) {
+        $skips = [
+            'html' => 'html',
+            'xml' => 'xml',
+        ];
+        if ($this->dataTypeWhiteList
+            || $this->dataTypeBlackList
+            || count(array_intersect_key($skips, $this->dataTypeBlackList)) !== count($skips)
+        ) {
             foreach (array_keys(array_intersect_key($this->properties, $json)) as $property) {
                 foreach ($json[$property] as $key => $value) {
                     if ($this->dataTypeWhiteList && !isset($this->dataTypeWhiteList[$value['type']])) {
@@ -351,6 +358,9 @@ class IndexTriplestore extends AbstractJob
                     }
                     if ($this->dataTypeBlackList && isset($this->dataTypeBlackList[$value['type']])) {
                         unset($json[$property][$key]);
+                    }
+                    if (in_array($value['type'], $skips)) {
+                        $json[$property][$key]['type'] = 'literal';
                     }
                 }
             }

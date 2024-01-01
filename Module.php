@@ -79,6 +79,13 @@ class Module extends AbstractModule
             'datatype_blacklist' => $settings->get('searchsparql_datatype_blacklist', $configModule['searchsparql_datatype_blacklist']),
         ];
 
+        if (!in_array('html', $args['datatype_blacklist']) || !in_array('xml', $args['datatype_blacklist'])) {
+            $message = new Message(
+                'The data types html and xml are currently not supported and converted into literal.' // @translate
+            );
+            $messenger->addWarning($message);
+        }
+
         // Use synchronous dispatcher for quick testing purpose.
         $strategy = null;
         $strategy = $strategy === 'synchronous'
