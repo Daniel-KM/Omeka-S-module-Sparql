@@ -16,6 +16,11 @@ class IndexTriplestore extends AbstractJob
     protected $api;
 
     /**
+     * @var \Doctrine\DBAL\Connection
+     */
+    protected $connection;
+
+    /**
      * @var \Doctrine\ORM\EntityManager
      */
     protected $entityManager;
@@ -29,6 +34,11 @@ class IndexTriplestore extends AbstractJob
      * @var array
      */
     protected $context;
+
+    /**
+     * @var array
+     */
+    protected $contextShort;
 
     /**
      * @var string
@@ -60,11 +70,13 @@ class IndexTriplestore extends AbstractJob
      *
      * @var array
      */
-    protected $vocabularyUris = [
+    protected $vocabularyIris = [
         'o' => 'http://omeka.org/s/vocabs/o#',
         // Used by media "html" and not in the default namespaces.
+        /** @see \Omeka\Module::filterHtmlMediaJsonLd() */
         'o-cnt' => 'http://www.w3.org/2011/content#',
         // Used by media "youtube". The default prefix "time" is kept.
+        /** @see \Omeka\Module::filterYoutubeMediaJsonLd() */
         'o-time' => 'http://www.w3.org/2006/time#',
         // Add contexts used by easyrdf.
         // The recommended is dc = full dc, but dc11 is not common.
@@ -123,6 +135,7 @@ class IndexTriplestore extends AbstractJob
         $services = $this->getServiceLocator();
 
         $this->api = $services->get('Omeka\ApiManager');
+        $this->connection = $services->get('Omeka\Connection');
         $this->entityManager = $services->get('Omeka\EntityManager');
         $this->logger = $services->get('Omeka\Logger');
 
@@ -171,6 +184,8 @@ class IndexTriplestore extends AbstractJob
         }
         $this->propertyMeta += array_flip($fieldsIncluded);
 
+        $this->initPrefixesShort();
+
         // Prepare output path.
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         $this->filepath = $basePath . '/triplestore/' . $this->datasetName . '.ttl';
@@ -205,31 +220,15 @@ class IndexTriplestore extends AbstractJob
      */
     protected function processIndex(): self
     {
-        // Step 1: adding vocabularies.
+        // Step 1: adding vocabularies used in triplestore.
 
         $output = '';
         $base = '@prefix %1$s: <%2$s> .';
-
-        // Include omeka vocabularies first.
-        $omekaVocabs = [
-            'o' => 'http://omeka.org/s/vocabs/o#',
-            'o-cnt' => 'http://www.w3.org/2011/content#',
-            'o-time' => 'http://www.w3.org/2006/time#',
-            // 'o-module-mapping' => 'http://omeka.org/s/vocabs/module/mapping#',
-        ];
-        foreach ($omekaVocabs + $this->context as $prefix => $namespaceUri) {
-            $output .= sprintf($base, $prefix, $namespaceUri) . PHP_EOL;
+        foreach ($this->contextShort as $prefix => $iri) {
+            $output .= sprintf($base, $prefix, $iri) . "\n";
         }
-
-        /** @var \Omeka\Api\Representation\VocabularyRepresentation[] $vocabularies */
-        /*
-        $vocabularies = $this->api->search('vocabularies', ['sort_by' => 'prefix'])->getContent();
-        foreach ($vocabularies as $vocabulary) {
-            $output .= sprintf($base, $vocabulary->prefix(), $vocabulary->namespaceUri()) . PHP_EOL;
-        }
-        */
-        $output .= PHP_EOL;
-        file_put_contents($this->filepath, $output, FILE_APPEND | LOCK_EX);
+        $output .= "\n\n";
+        file_put_contents($this->filepath, $output, LOCK_EX);
 
         // Step 2: adding item sets.
 
@@ -337,30 +336,112 @@ class IndexTriplestore extends AbstractJob
         $graph->parse(json_encode($json), 'jsonld', $id);
         $turtle = $graph->serialise('turtle');
 
-        file_put_contents($this->filepath, $turtle . PHP_EOL, FILE_APPEND | LOCK_EX);
+        // Remove vocabularies.
+        $turtle = mb_substr($turtle, mb_strpos($turtle, "\n\n") + 2);
+
+        file_put_contents($this->filepath, $turtle . "\n", FILE_APPEND | LOCK_EX);
 
         return $this;
     }
 
+    /**
+     * Prepare all vocabulary prefixes used in the database.
+     */
     protected function initPrefixes(): self
     {
         // In Omeka, an event is needed to get all the vocabularies.
         $eventManager = $this->getServiceLocator()->get('EventManager');
         $args = $eventManager->prepareArgs(['context' => []]);
         $eventManager->trigger('api.context', null, $args);
-        $this->context = $args['context'] + $this->vocabularyUris;
+        $this->context = $args['context'] + $this->vocabularyIris;
         ksort($this->context);
 
         // Initialise namespaces with all prefixes from Omeka.
         /** @see \EasyRdf\RdfNamespace::initial_namespaces */
         $initialNamespaces = RdfNamespace::namespaces();
-        foreach ($this->context as $prefix => $uri) {
-            $search = array_search($uri, $initialNamespaces);
+        foreach ($this->context as $prefix => $iri) {
+            $search = array_search($iri, $initialNamespaces);
             if ($search !== false && $prefix !== 'o-time' && $prefix !== 'o-cnt') {
                 RdfNamespace::delete($prefix);
             }
-            RdfNamespace::set($prefix, $uri);
+            RdfNamespace::set($prefix, $iri);
         }
+
+        return $this;
+    }
+
+    /**
+     * Prepare the vocabulary prefixes used in the list of resources.
+     */
+    protected function initPrefixesShort(): self
+    {
+        $prefixIris = [
+            'o' => 'http://omeka.org/s/vocabs/o#',
+            'xsd' => 'http://www.w3.org/2001/XMLSchema#',
+        ];
+
+        $sql = <<<SQL
+SELECT vocabulary.prefix, vocabulary.namespace_uri
+FROM vocabulary
+JOIN property ON property.vocabulary_id = vocabulary.id
+JOIN value ON value.property_id = property.id
+WHERE value.resource_id IN (:ids)
+GROUP BY vocabulary.prefix
+ORDER BY vocabulary.prefix ASC
+;
+SQL;
+
+        if (in_array('item_sets', $this->resourceTypes)) {
+            $ids = $this->api->search('item_sets', [], ['returnScalar' => 'id'])->getContent();
+            $prefixIris += $this->connection->executeQuery($sql, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
+        }
+
+        if (in_array('items', $this->resourceTypes)) {
+            $ids = $this->api->search('items', $this->resourceQuery, ['returnScalar' => 'id'])->getContent();
+            $prefixIris += $this->connection->executeQuery($sql, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
+
+            $indexMedia = in_array('media', $this->resourceTypes);
+            if ($indexMedia) {
+                $sql = <<<SQL
+SELECT vocabulary.prefix, vocabulary.namespace_uri
+FROM vocabulary
+JOIN property ON property.vocabulary_id = vocabulary.id
+JOIN value ON value.property_id = property.id
+JOIN media ON media.id = value.resource_id
+WHERE media.item_id IN (:ids)
+GROUP BY vocabulary.prefix
+ORDER BY vocabulary.prefix ASC
+;
+SQL;
+                $prefixIris += $this->connection->executeQuery($sql, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
+
+                // Manage special prefixes.
+                $sql = <<<SQL
+SELECT media.renderer
+FROM media
+WHERE media.item_id IN (:ids)
+GROUP BY media.renderer
+ORDER BY media.renderer ASC
+;
+SQL;
+                $renderers = $this->connection->executeQuery($sql, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchFirstColumn();
+                /** @see \Omeka\Module::filterHtmlMediaJsonLd() */
+                if (in_array('html', $renderers)) {
+                    $prefixIris['o-cnt'] = 'http://www.w3.org/2011/content#';
+                }
+                /** @see \Omeka\Module::filterYoutubeMediaJsonLd() */
+                if (in_array('youtube', $renderers)) {
+                    $prefixIris['o-time'] = 'http://www.w3.org/2006/time#';
+                }
+            }
+        }
+
+        if ($this->rdfsLabel) {
+            $prefixIris[strtok($this->rdfsLabel, ':')] = 'http://www.w3.org/2000/01/rdf-schema#';
+        }
+
+        ksort($prefixIris);
+        $this->contextShort = $prefixIris;
 
         return $this;
     }
