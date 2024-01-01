@@ -16,11 +16,12 @@
 
 $plugins = $this->getHelperPluginManager();
 $escape = $plugins->get('escapeHtml');
+$assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
 $escapeAttr = $plugins->get('escapeHtmlAttr');
 
 $this->htmlElement('body')->appendAttribute('class', 'sparql');
-$this->headLink()->appendStylesheet($this->assetUrl('css/sparql.css', 'Sparql'));
+$this->headLink()->appendStylesheet($assetUrl('css/sparql.css', 'Sparql'));
 
 $matches = [];
 $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~';
@@ -28,12 +29,15 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
 
 <div class="namespaces">
     <h3><?= $translate('Namespaces') ?></h3>
-    <dl>
-        <?php foreach ($namespaces as $prefix => $uri): ?>
-        <dt><?= $escape($prefix) ?></dt>
-        <dd><?= $escape($uri) ?></dd>
-        <?php endforeach; ?>
-    </dl>
+    <a href="#" class="expand" aria-label="<?= $translate('Expand') ?>" title="<?= $translate('Expand') ?>"></a>
+    <div class="collapsible">
+        <dl>
+            <?php foreach ($namespaces as $prefix => $uri): ?>
+            <dt><?= $escape($prefix) ?></dt>
+            <dd><?= $escape($uri) ?></dd>
+            <?php endforeach; ?>
+        </dl>
+    </div>
 </div>
 
 <?php $submit = $form->get('submit'); ?>
@@ -58,7 +62,7 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
 
     <div class="result result-text">
         <h3><?= $escape($translate('Results')) ?></h3>
-        <table class="tablesaw tablesaw-stack">
+        <table class="sparql-result tablesaw tablesaw-stack">
             <thead>
                 <tr>
                     <?php foreach ($resultArc2['result']['variables'] as $variable): ?>
@@ -95,7 +99,7 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
 
     <div class="result result-html">
         <h3><?= $escape($translate('Results')) ?></h3>
-        <table class="tablesaw tablesaw-stack">
+        <table class="sparql-result tablesaw tablesaw-stack">
             <thead>
                 <tr>
                     <?php foreach ($resultArc2['result']['variables'] as $variable): ?>
