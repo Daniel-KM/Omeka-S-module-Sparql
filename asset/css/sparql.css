@@ -11,12 +11,13 @@
         display: inline-block;
         width: auto;
     }
-    .namespaces h3 {
+    .namespaces label {
         display: inline-block;
     }
-    .namespaces h3 + .expand,
-    .namespaces h3 + .collapse {
+    .namespaces label + .expand,
+    .namespaces label + .collapse {
         color: #676767;
+        margin-left: 6px;
     }
     .namespaces dl {
         display: flex;

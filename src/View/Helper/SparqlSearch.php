@@ -5,6 +5,7 @@ namespace Sparql\View\Helper;
 use Laminas\View\Helper\AbstractHelper;
 use ARC2;
 use ARC2_Store;
+use ARC2_StoreEndpoint;
 use Doctrine\DBAL\Connection;
 use EasyRdf\RdfNamespace;
 use Exception;
@@ -80,17 +81,17 @@ class SparqlSearch extends AbstractHelper
      * @param array $options
      * - template (string)
      * - method (string): get (default) or post
-     * - as_array (bool): return results as array
+     * - sparql_array (bool): return results according to sparl protocol v1.1.
      * @return string|array Html string or result array.
      */
     public function __invoke(array $options = [])
     {
-        $asArray = !empty($options['as_array']);
+        $sparqlArray = !empty($options['sparql_array']);
 
         /** @var \ARC2_Store $triplestore */
-        $triplestore = $this->getSparqlTriplestore();
+        $triplestore = $this->getSparqlTriplestore($sparqlArray);
         if (!$triplestore) {
-            return $asArray ? [] : '';
+            return $sparqlArray ? [] : '';
         }
 
         $view = $this->getView();
@@ -102,9 +103,11 @@ class SparqlSearch extends AbstractHelper
             $result['form']->setAttribute('method', $options['method']);
         }
 
-        if ($asArray) {
+        if ($sparqlArray) {
             return $result;
         }
+
+        unset($result['triplestore']);
 
         $template = empty($options['template']) ? self::PARTIAL_NAME : $options['template'];
 
@@ -112,14 +115,18 @@ class SparqlSearch extends AbstractHelper
     }
 
     /**
-     * Help on getStoreEndpoint() and getStore().
+     * Get an ARC2 local store (simple or standard endpoint).
+     *
+     * Help on getStoreEndpoint() and getStore():
      * @see https://github.com/semsol/arc2/wiki/Getting-started-with-ARC2
      * @see https://github.com/semsol/arc2/wiki/SPARQL-Endpoint-Setup
      *
-     * @see \Sparql\Controller\IndexController::getSparqlTriplestore()
+     * @see \Sparql\View\Helper\SparqlSearch::getSparqlTriplestore()
      * @see \Sparql\Job\IndexTriplestore::indexArc2()
+     *
+     * @return \ARC2_Store|\ARC2_StoreEndpoint|null
      */
-    protected function getSparqlTriplestore(): ?ARC2_Store
+    protected function getSparqlTriplestore(bool $isEndpoint = false): ?ARC2_Store
     {
         $writeKey = $this->settings->get('sparql_arc2_write_key') ?: '';
 
@@ -167,8 +174,10 @@ class SparqlSearch extends AbstractHelper
         ];
 
         try {
-            /** @var \ARC2_Store $store */
-            $store = ARC2::getStore($configArc2);
+            /** @var \ARC2_Store|\ARC2_StoreEndpoint $store */
+            $store = $isEndpoint
+                ? ARC2::getStoreEndpoint($configArc2)
+                : ARC2::getStore($configArc2);
             $store->createDBCon();
             if (!$store->isSetUp()) {
                 $store->setUp();
@@ -181,12 +190,12 @@ class SparqlSearch extends AbstractHelper
         return $store;
     }
 
-    protected function sparqlQueryTriplestore(ARC2_STORE $triplestore): array
+    protected function sparqlQueryTriplestore(ARC2_Store $triplestore): array
     {
+        /** @var \Sparql\Form\SparqlForm $form */
         $form = $this->formManager->get(\Sparql\Form\SparqlForm::class);
         $query = null;
         $result = null;
-        $resultArc2 = null;
         $format = null;
         $namespaces = $this->prepareNamespaces();
         $errorMessage = null;
@@ -214,17 +223,34 @@ class SparqlSearch extends AbstractHelper
                         $prefixes .= "PREFIX $prefix: <$iri>\n";
                     }
                     try {
-                        $resultArc2 = $triplestore->query($prefixes . $query);
+                        // Deprecated in many places: passing null to preg_match in ARC2_Store line 304
+                        $errorReporting = error_reporting();
+                        error_reporting($errorReporting & ~E_DEPRECATED);
+                        if ($triplestore instanceof ARC2_StoreEndpoint) {
+                            // For better protocol handling, remove key submit.
+                            // The key format is not used here.
+                            unset($_GET['submit'], $_POST['submit']);
+                            if (isset($_GET['query'])) {
+                                $_GET['query'] = $prefixes . $_GET['query'];
+                            }
+                            if (isset($_POST['query'])) {
+                                $_GET['query'] = $prefixes . $_POST['query'];
+                            }
+                            $triplestore->handleRequest();
+                            $result = $triplestore->getResult();
+                        } else {
+                            $result = $triplestore->query($prefixes . $query);
+                        }
                         $errors = $triplestore->getErrors();
+                        error_reporting($errorReporting);
                         if ($errors) {
                             $errorMessage = implode("\n", $errors);
                         }
-                        // TODO Else preprocess result to get a simple table?
                     } catch (Exception $e) {
                         $errorMessage = $e->getMessage();
                     }
                 }
-        } else {
+            } else {
                 $this->messenger->addFormErrors($form);
             }
         }
@@ -234,8 +260,8 @@ class SparqlSearch extends AbstractHelper
             'form' => $form,
             'query' => $query,
             'result' => $result,
-            'resultArc2' => $resultArc2,
             'format' => $format,
+            'triplestore' => $triplestore,
             'namespaces' => $namespaces,
             'errorMessage' => $errorMessage,
         ];

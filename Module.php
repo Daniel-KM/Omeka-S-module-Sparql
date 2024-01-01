@@ -47,7 +47,7 @@ class Module extends AbstractModule
             // TODO Use credentials in sparql like api.
             ->allow(
                 null,
-                [\Sparql\Controller\IndexController::class],
+                [\Sparql\Controller\SparqlController::class],
                 ['error', 'sparql']
             )
         ;

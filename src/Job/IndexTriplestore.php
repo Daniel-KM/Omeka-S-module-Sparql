@@ -622,11 +622,9 @@ SQL;
     }
 
     /**
-     * Help on getStoreEndpoint() and getStore().
-     * @see https://github.com/semsol/arc2/wiki/Getting-started-with-ARC2
-     * @see https://github.com/semsol/arc2/wiki/SPARQL-Endpoint-Setup
+     * Index the triplestore in the ARC2 local database.
      *
-     * @see \Sparql\Controller\IndexController::getSparqlTriplestore()
+     * @see \Sparql\View\Helper\SparqlSearch::getSparqlTriplestore()
      * @see \Sparql\Job\IndexTriplestore::indexArc2()
      */
     protected function indexArc2(): self

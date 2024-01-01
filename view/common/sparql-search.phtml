@@ -3,8 +3,8 @@
  * @var \Laminas\View\Renderer\PhpRenderer $this
  * @var \Omeka\Api\Representation\SiteRepresentation|null $site
  * @var \Sparql\Form\SparqlForm $form
- * @var \EasyRdf\Sparql\Result|\EasyRdf\Graph|null $result Unused currently
- * @var array $resultArc2
+ * @var array $result array representation of a standard sparql response
+ * @var \EasyRdf\Sparql\Result|\EasyRdf\Graph|null $resultEasyRdf Unused currently.
  * @var string $query
  * @var string $format "text" or "html"
  * @var array $namespaces
@@ -27,8 +27,8 @@ $matches = [];
 $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~';
 ?>
 
-<div class="namespaces">
-    <h3><?= $translate('Namespaces') ?></h3>
+<div class="field namespaces">
+    <label><?= $translate('Namespaces') ?></label>
     <a href="#" class="expand" aria-label="<?= $translate('Expand') ?>" title="<?= $translate('Expand') ?>"></a>
     <div class="collapsible">
         <dl>
@@ -58,23 +58,23 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
         </p>
     </div>
 
-<?php elseif ($resultArc2 && $format === 'text'): ?>
+<?php elseif ($result && $format === 'text'): ?>
 
     <div class="result result-text">
         <h3><?= $escape($translate('Results')) ?></h3>
         <table class="sparql-result tablesaw tablesaw-stack">
             <thead>
                 <tr>
-                    <?php foreach ($resultArc2['result']['variables'] as $variable): ?>
+                    <?php foreach ($result['result']['variables'] as $variable): ?>
                     <th><?= $escape($variable) ?></th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($resultArc2['result']['rows'] as $row): ?>
+                <?php foreach ($result['result']['rows'] as $row): ?>
                 <tr>
                     <?php foreach ($row as $key => $value):
-                        if (!in_array($key, $resultArc2['result']['variables'])) continue;
+                        if (!in_array($key, $result['result']['variables'])) continue;
                         $type = $row[$key . ' type'] ?? null;
                         $dataType = $row[$key . ' datatype'] ?? null;
                         $lang = $row[$key . ' lang'] ?? null;
@@ -95,23 +95,23 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
         </table>
     </div>
 
-<?php elseif ($resultArc2): ?>
+<?php elseif ($result): ?>
 
     <div class="result result-html">
         <h3><?= $escape($translate('Results')) ?></h3>
         <table class="sparql-result tablesaw tablesaw-stack">
             <thead>
                 <tr>
-                    <?php foreach ($resultArc2['result']['variables'] as $variable): ?>
+                    <?php foreach ($result['result']['variables'] as $variable): ?>
                     <th><?= $escape($variable) ?></th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($resultArc2['result']['rows'] as $row): ?>
+                <?php foreach ($result['result']['rows'] as $row): ?>
                 <tr>
                     <?php foreach ($row as $key => $value):
-                        if (!in_array($key, $resultArc2['result']['variables'])) continue;
+                        if (!in_array($key, $result['result']['variables'])) continue;
                         $type = $row[$key . ' type'] ?? null;
                         $dataType = $row[$key . ' datatype'] ?? null;
                         $lang = $row[$key . ' lang'] ?? null;

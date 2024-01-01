@@ -27,7 +27,7 @@ return [
     ],
     'controllers' => [
         'invokables' => [
-            Controller\IndexController::class => Controller\IndexController::class,
+            Controller\SparqlController::class => Controller\SparqlController::class,
         ],
     ],
     'router' => [
@@ -38,7 +38,7 @@ return [
                     'route' => '/sparql',
                     'defaults' => [
                         '__NAMESPACE__' => 'Sparql\Controller',
-                        'controller' => Controller\IndexController::class,
+                        'controller' => Controller\SparqlController::class,
                         'action' => 'sparql',
                     ],
                 ],
