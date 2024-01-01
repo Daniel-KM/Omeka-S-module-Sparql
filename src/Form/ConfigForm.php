@@ -27,6 +27,16 @@ class ConfigForm extends Form
                 ],
             ])
             ->add([
+                'name' => 'searchsparql_resource_query',
+                'type' => OmekaElement\Query::class,
+                'options' => [
+                    'label' => 'Limit indexation of items with a query', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'searchsparql_resource_query',
+                ],
+            ])
+            ->add([
                 'name' => 'searchsparql_property_whitelist',
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [

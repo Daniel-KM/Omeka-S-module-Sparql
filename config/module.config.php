@@ -15,6 +15,7 @@ return [
                 'items',
                 // 'media',
             ],
+            'searchsparql_resource_query' => '',
             'searchsparql_property_whitelist' => [
             ],
             'searchsparql_property_blacklist' => [

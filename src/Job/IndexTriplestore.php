@@ -90,6 +90,11 @@ class IndexTriplestore extends AbstractJob
     /**
      * @var array
      */
+    protected $resourceQuery;
+
+    /**
+     * @var array
+     */
     protected $resourceTypes;
 
     /**
@@ -133,6 +138,15 @@ class IndexTriplestore extends AbstractJob
         // Init options.
 
         $this->resourceTypes = $this->getArg('resource_types', $settings->get('searchsparql_resource_types', $configModule['searchsparql_resource_types']));
+
+        $this->resourceQuery = $this->getArg('resource_query', $settings->get('searchsparql_resource_query', $configModule['searchsparql_resource_query']));
+        if ($this->resourceQuery) {
+            $query = [];
+            parse_str((string) $this->resourceQuery, $query);
+            $this->resourceQuery = $query;
+        } else {
+            $this->resourceQuery = [];
+        }
 
         $this->properties = $easyMeta->propertyIds();
 
@@ -236,7 +250,7 @@ class IndexTriplestore extends AbstractJob
         if (in_array('items', $this->resourceTypes)) {
             $indexMedia = in_array('media', $this->resourceTypes);
 
-            $response = $this->api->search('items', [], ['returnScalar' => 'id']);
+            $response = $this->api->search('items', $this->resourceQuery, ['returnScalar' => 'id']);
             $total = $response->getTotalResults();
 
             if ($indexMedia) {
