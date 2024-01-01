@@ -48,8 +48,44 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
             <?= nl2br($escape($errorMessage)) ?>
         </p>
     </div>
+<?php elseif ($resultArc2 && $format === 'text'): ?>
+    <div class="result result-text">
+        <h3><?= $escape($translate('Results')) ?></h3>
+        <table class="tablesaw tablesaw-stack">
+            <thead>
+                <tr>
+                    <?php foreach ($resultArc2['result']['variables'] as $variable): ?>
+                    <th><?= $escape($variable) ?></th>
+                    <?php endforeach; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($resultArc2['result']['rows'] as $row): ?>
+                <tr>
+                    <?php foreach ($row as $key => $value):
+                        if (!in_array($key, $resultArc2['result']['variables'])) continue;
+                        $type = $row[$key . ' type'] ?? null;
+                        $dataType = $row[$key . ' datatype'] ?? null;
+                        $lang = $row[$key . ' lang'] ?? null;
+                        ?>
+                        <td>
+                            <span class="value-content"<?= $type ? ' data-type="' . $escapeAttr($type) . '"' : '' ?> <?= $lang ? ' lang="' . $escapeAttr($lang) . '"' : '' ?>"><?= $escape($value) ?></span>
+                            <?php if ($dataType || $type): ?>
+                            <span class="data-type">^^<?= $escape($dataType ?: $type) ?></span>
+                            <?php endif; ?>
+                            <?php if ($lang): ?>
+                            <span class="language">@<?= $escape($lang) ?></span>
+                            <?php endif; ?>
+                        </td>
+                    <?php endforeach; ?>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 <?php elseif ($resultArc2): ?>
-    <div class="result">
+    <div class="result result-html">
+        <h3><?= $escape($translate('Results')) ?></h3>
         <table class="tablesaw tablesaw-stack">
             <thead>
                 <tr>
@@ -69,9 +105,9 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
                         ?>
                         <td>
                             <?php if ($type && $dataType): ?>
-                            <a class="type" href="<?= $escapeAttr($dataType) ?>"><?= $escape($type) ?></a>
+                            <a class="data-type" href="<?= $escapeAttr($dataType) ?>"><?= $escape($type) ?></a>
                             <?php elseif ($type): ?>
-                            <span class="type"><?= $escape($type) ?></span>
+                            <span class="data-type"><?= $escape($type) ?></span>
                             <?php endif; ?>
                             <?php if ($lang): ?>
                             <span class="language"><?= $escape($lang) ?></span>
@@ -84,7 +120,7 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
                             <?php elseif ($type === 'uri'): ?>
                             <a class="value-content" href="<?= $escapeAttr($value) ?>"><?= $escape($value) ?></a>
                             <?php else: ?>
-                            <span class="value-content"><?= $escape($value) ?></span>
+                            <span class="value-content"<?= $type ? ' data-type="' . $escapeAttr($type) . '"' : '' ?> <?= $lang ? ' lang="' . $escapeAttr($lang) . '"' : '' ?>"><?= $escape($value) ?></span>
                             <?php endif; ?>
                         </td>
                     <?php endforeach; ?>

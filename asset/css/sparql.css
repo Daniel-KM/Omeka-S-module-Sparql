@@ -21,8 +21,8 @@
         margin: 0;
         padding: 2px 4px;
     }
-    .result span.type,
-    .result span.lang {
+    .result-html span.type,
+    .result-html span.language {
         user-select: none;
     }
 }

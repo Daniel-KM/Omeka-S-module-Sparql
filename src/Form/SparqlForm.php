@@ -2,6 +2,7 @@
 
 namespace Sparql\Form;
 
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Laminas\Form\Form;
 
@@ -20,6 +21,24 @@ class SparqlForm extends Form
                 'attributes' => [
                     'id' => 'query',
                     'rows' => 10,
+                ],
+            ])
+            ->add([
+                'name' => 'format',
+                'type' => CommonElement\OptionalRadio::class,
+                'options' => [
+                    'label' => 'Format', // @translate
+                    'value_options' => [
+                        'html' => 'Table', // @translate
+                        'text' => 'Text', // @translate
+                    ],
+                    'label_attributes' => [
+                        'class' => 'type-radio',
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'format',
+                    'value' => 'html',
                 ],
             ])
             ->add([
