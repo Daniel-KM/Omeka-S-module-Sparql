@@ -5,6 +5,8 @@ namespace Sparql\Controller;
 use ARC2;
 use ARC2_Store;
 use Common\Stdlib\PsrMessage;
+use Doctrine\DBAL\Connection;
+use EasyRdf\RdfNamespace;
 use Exception;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\View\Model\ViewModel;
@@ -16,9 +18,15 @@ class IndexController extends AbstractActionController
      */
     protected $basePath;
 
-    public function __construct(string $basePath)
+    /**
+     * @var \Doctrine\DBAL\Connection
+     */
+    protected $connection;
+
+    public function __construct(string $basePath, Connection $connection)
     {
         $this->basePath = $basePath;
+        $this->connection = $connection;
     }
 
     /**
@@ -43,6 +51,7 @@ class IndexController extends AbstractActionController
         $result = null;
         $resultArc2 = null;
         $format = null;
+        $namespaces = $this->prepareNamespaces();
         $errorMessage = null;
 
         if ($data) {
@@ -76,6 +85,7 @@ class IndexController extends AbstractActionController
             'result' => $result,
             'resultArc2' => $resultArc2,
             'format' => $format,
+            'namespaces' => $namespaces,
             'errorMessage' => $errorMessage,
         ]);
     }
@@ -146,5 +156,35 @@ class IndexController extends AbstractActionController
         }
 
         return $store;
+    }
+
+    /**
+     * Prepare all vocabulary prefixes used in the database.
+     *
+     * @todo Use context to create the list of prefixes and iris?
+     * @see \Sparql\Job\IndexTriplestore::initPrefixesShort()
+     */
+    protected function prepareNamespaces(): array
+    {
+        $prefixIris = [
+            'o' => 'http://omeka.org/s/vocabs/o#',
+            'xsd' => 'http://www.w3.org/2001/XMLSchema#',
+        ];
+
+        $sql = <<<SQL
+SELECT vocabulary.prefix, vocabulary.namespace_uri
+FROM vocabulary
+JOIN property ON property.vocabulary_id = vocabulary.id
+JOIN value ON value.property_id = property.id
+GROUP BY vocabulary.prefix
+ORDER BY vocabulary.prefix ASC
+;
+SQL;
+        $prefixIris += $this->connection->executeQuery($sql)->fetchAllKeyValue();
+
+        foreach ($prefixIris as $prefix => $iri) {
+            RdfNamespace::set($prefix, $iri);
+        }
+        return $prefixIris;
     }
 }

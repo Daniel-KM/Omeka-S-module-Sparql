@@ -7,4 +7,18 @@
         display: inline-block;
         width: auto;
     }
+    .namespaces dl {
+        display: flex;
+        flex-flow: row wrap;
+    }
+    .namespaces dt {
+        flex-basis: 20%;
+        padding: 2px 4px;
+    }
+    .namespaces dd {
+        flex-basis: 80%;
+        flex-grow: 1;
+        margin: 0;
+        padding: 2px 4px;
+    }
 }

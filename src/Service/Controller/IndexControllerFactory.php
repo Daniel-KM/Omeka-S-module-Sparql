@@ -13,7 +13,8 @@ class IndexControllerFactory implements FactoryInterface
         $config = $services->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: OMEKA_PATH . '/files';
         return new IndexController(
-            $basePath
+            $basePath,
+            $services->get('Omeka\Connection')
         );
     }
 }

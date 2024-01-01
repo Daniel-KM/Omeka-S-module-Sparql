@@ -6,6 +6,7 @@
  * @var array $resultArc2
  * @var string $query
  * @var string $format "text" or "html" Unused currently.
+ * @var array $namespaces
  * @var string $errorMessage
  */
 
@@ -22,6 +23,16 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/sparql.css', 'Sparql'))
 <div id="page-actions">
     <?= $this->formButton($form->get('submit')) ?>
     <?php $form->remove('submit'); ?>
+</div>
+
+<div class="namespaces">
+    <h3><?= $translate('Namespaces') ?></h3>
+    <dl>
+        <?php foreach ($namespaces as $prefix => $uri): ?>
+        <dt><?= $escape($prefix) ?></dt>
+        <dd><?= $escape($uri) ?></dd>
+        <?php endforeach; ?>
+    </dl>
 </div>
 
 <?= $this->form($form) ?>
