@@ -75,11 +75,15 @@ class IndexTriplestore extends AbstractJob
      */
     protected $vocabularyUris = [
         'o' => 'http://omeka.org/s/vocabs/o#',
+        // Used by media "html" and not in the default namespaces.
         'o-cnt' => 'http://www.w3.org/2011/content#',
+        // Used by media "youtube". The default prefix "time" is kept.
         'o-time' => 'http://www.w3.org/2006/time#',
         // Add contexts used by easyrdf.
+        // The recommended is dc = full dc, but dc11 is not common.
         'dc' => 'http://purl.org/dc/elements/1.1/',
-        'dcterms' => 'http://purl.org/dc/terms/',
+        // dcterms is included in default namespaces.
+        // 'dcterms' => 'http://purl.org/dc/terms/',
     ];
 
     /**
@@ -336,7 +340,7 @@ class IndexTriplestore extends AbstractJob
         $initialNamespaces = RdfNamespace::namespaces();
         foreach ($this->context as $prefix => $uri) {
             $search = array_search($uri, $initialNamespaces);
-            if ($search !== false) {
+            if ($search !== false && $prefix !== 'o-time' && $prefix !== 'o-cnt') {
                 RdfNamespace::delete($prefix);
             }
             RdfNamespace::set($prefix, $uri);
