@@ -44,9 +44,12 @@ return [
             'sparql_resource_query' => '',
             'sparql_resource_private' => false,
             'sparql_fields_included' => [
-                'o:resource_template',
-                // 'o:is_public',
                 // 'o:owner',
+                // 'o:is_public',
+                // The class is automatically included as type of the
+                // resource according to json-ld representation.
+                'o:resource_class',
+                'o:resource_template',
                 'o:thumbnail',
                 // 'o:title',
                 'rdfs:label',

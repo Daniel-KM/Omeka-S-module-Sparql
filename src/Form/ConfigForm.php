@@ -53,12 +53,12 @@ class ConfigForm extends Form
                 'options' => [
                     'label' => 'Omeka metadata to include', // @translate
                     'value_options' => [
-                        'o:resource_template' => 'Resource template', // @translate
-                        'o:is_public' => 'Visibility', // @translate
                         'o:owner' => 'Owner',
+                        'o:is_public' => 'Visibility', // @translate
                         // The class is automatically included as type of the
                         // resource according to json-ld representation.
-                        // 'o:resource_class' => $resourceClass,
+                        'o:resource_class' => 'Resource class', // @translate
+                        'o:resource_template' => 'Resource template', // @translate
                         'o:thumbnail' => 'Thumbnail', // @translate
                         'o:title' => 'Title', // @translate
                         'rdfs:label' => 'Title as rdf label', // @translate
@@ -132,7 +132,7 @@ class ConfigForm extends Form
                 'options' => [
                     'label' => 'Index in sparql engine', // @translate
                     'value_options' => [
-                        'turtle' => 'Triplestore (turtle)', // @translate
+                        'turtle' => 'Triplestore (turtle) (not updated if not selected)', // @translate
                         'arc2' => 'Semsol Arc2 (internal)', // @translate
                     ],
                 ],
