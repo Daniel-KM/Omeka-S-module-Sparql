@@ -171,6 +171,10 @@ class IndexController extends AbstractActionController
             'xsd' => 'http://www.w3.org/2001/XMLSchema#',
         ];
 
+        if (in_array('rdfs:label', $this->settings()->get('sparql_fields_included', []))) {
+            $prefixIris['rdfs'] = 'http://www.w3.org/2000/01/rdf-schema#';
+        }
+
         $sql = <<<SQL
 SELECT vocabulary.prefix, vocabulary.namespace_uri
 FROM vocabulary
@@ -185,6 +189,9 @@ SQL;
         foreach ($prefixIris as $prefix => $iri) {
             RdfNamespace::set($prefix, $iri);
         }
+
+        ksort($prefixIris);
+
         return $prefixIris;
     }
 }

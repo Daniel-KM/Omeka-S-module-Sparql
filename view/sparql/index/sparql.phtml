@@ -13,9 +13,13 @@
 $plugins = $this->getHelperPluginManager();
 $escape = $plugins->get('escapeHtml');
 $translate = $plugins->get('translate');
+$escapeAttr = $plugins->get('escapeHtmlAttr');
 
 $this->htmlElement('body')->appendAttribute('class', 'sparql');
 $this->headLink()->appendStylesheet($this->assetUrl('css/sparql.css', 'Sparql'));
+
+$matches = [];
+$pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~';
 ?>
 
 <?= $this->pageTitle($translate('Sparql'), 1, $translate('Triplestore')) ?>
@@ -46,14 +50,47 @@ $this->headLink()->appendStylesheet($this->assetUrl('css/sparql.css', 'Sparql'))
     </div>
 <?php elseif ($resultArc2): ?>
     <div class="result">
-        <table>
-        <?php foreach ($resultArc2['result']['rows'] as $row): ?>
-            <tr>
-                <?php foreach ($row as $key => $value): ?>
-                <?php if (!in_array($key, $resultArc2['result']['variables'])) continue; ?>
-                <td><?= $escape($value) ?></td>
+        <table class="tablesaw tablesaw-stack">
+            <thead>
+                <tr>
+                    <?php foreach ($resultArc2['result']['variables'] as $variable): ?>
+                    <th><?= $escape($variable) ?></th>
+                    <?php endforeach; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($resultArc2['result']['rows'] as $row): ?>
+                <tr>
+                    <?php foreach ($row as $key => $value):
+                        if (!in_array($key, $resultArc2['result']['variables'])) continue;
+                        $type = $row[$key . ' type'] ?? null;
+                        $dataType = $row[$key . ' datatype'] ?? null;
+                        $lang = $row[$key . ' lang'] ?? null;
+                        ?>
+                        <td>
+                            <?php if ($type && $dataType): ?>
+                            <a class="type" href="<?= $escapeAttr($dataType) ?>"><?= $escape($type) ?></a>
+                            <?php elseif ($type): ?>
+                            <span class="type"><?= $escape($type) ?></span>
+                            <?php endif; ?>
+                            <?php if ($lang): ?>
+                            <span class="language"><?= $escape($lang) ?></span>
+                            <?php endif; ?>
+                            <?php if ($type === 'uri' && preg_match($pattern, $value, $matches)): ?>
+                            <?php $iri = $matches[1]; ?>
+                            <?php $prop = $matches[2]; ?>
+                            <?php $prefix = array_search($iri, $namespaces); ?>
+                            <a class="value-content" href="<?= $escapeAttr($value) ?>"><?= $escape("$prefix:$prop") ?></a>
+                            <?php elseif ($type === 'uri'): ?>
+                            <a class="value-content" href="<?= $escapeAttr($value) ?>"><?= $escape($value) ?></a>
+                            <?php else: ?>
+                            <span class="value-content"><?= $escape($value) ?></span>
+                            <?php endif; ?>
+                        </td>
+                    <?php endforeach; ?>
+                </tr>
                 <?php endforeach; ?>
-            </tr>
-        <?php endforeach; ?>
-    </table>
+            </tbody>
+        </table>
+    </div>
 <?php endif; ?>

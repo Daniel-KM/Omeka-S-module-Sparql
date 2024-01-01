@@ -21,4 +21,8 @@
         margin: 0;
         padding: 2px 4px;
     }
+    .result span.type,
+    .result span.lang {
+        user-select: none;
+    }
 }

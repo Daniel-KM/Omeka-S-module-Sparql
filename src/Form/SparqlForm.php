@@ -15,7 +15,7 @@ class SparqlForm extends Form
                 'name' => 'query',
                 'type' => Element\Textarea::class,
                 'options' => [
-                    'label' => 'Sparql query', // @translate
+                    'label' => 'Query', // @translate
                 ],
                 'attributes' => [
                     'id' => 'query',
