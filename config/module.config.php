@@ -8,6 +8,11 @@ return [
             dirname(__DIR__) . '/view',
         ],
     ],
+    'view_helpers' => [
+        'factories' => [
+            'sparqlSearch' => Service\ViewHelper\SparqlSearchFactory::class,
+        ],
+    ],
     'form_elements' => [
         'invokables' => [
             Form\ConfigForm::class => Form\ConfigForm::class,
@@ -15,8 +20,8 @@ return [
         ],
     ],
     'controllers' => [
-        'factories' => [
-            Controller\IndexController::class => Service\Controller\IndexControllerFactory::class,
+        'invokables' => [
+            Controller\IndexController::class => Controller\IndexController::class,
         ],
     ],
     'router' => [

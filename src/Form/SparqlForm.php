@@ -11,7 +11,11 @@ class SparqlForm extends Form
     public function init(): void
     {
         $this
+            // Don't add the csrf in a search form.
+            ->remove('csrf')
             ->setAttribute('id', 'form-sparql')
+            // The protocol allows "get" or "post" for standard query.
+            ->setAttribute('method', 'GET')
             ->add([
                 'name' => 'query',
                 'type' => Element\Textarea::class,

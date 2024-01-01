@@ -680,10 +680,12 @@ SQL;
 
             // Endpoint.
             'endpoint_features' => [
+                // Read requests.
                 'select',
                 'construct',
                 'ask',
                 'describe',
+                // Write requests.
                 'load',
                 'insert',
                 'delete',

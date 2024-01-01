@@ -2,6 +2,10 @@
     #page-actions button#submit {
         background-color: #fff;
     }
+    #form-sparql textarea {
+        height: auto;
+        width: 100%;
+    }
     #form-sparql .inputs label.type-radio,
     #form-sparql .inputs label.type-radio input[type=radio] {
         display: inline-block;
