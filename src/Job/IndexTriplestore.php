@@ -4,6 +4,7 @@ namespace Sparql\Job;
 
 use EasyRdf\Graph;
 use EasyRdf\RdfNamespace;
+use Exception;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 use Omeka\Job\AbstractJob;
 
@@ -71,30 +72,6 @@ class IndexTriplestore extends AbstractJob
     protected $properties;
 
     /**
-     * Specific property prefixes.
-     *
-     * @see \EasyRdf\RdfNamespace::initial_namespaces
-     * @see https://www.w3.org/2011/rdfa-context/rdfa-1.1
-     * @see https://www.w3.org/2013/json-ld-context/rdfa11
-     *
-     * @var array
-     */
-    protected $vocabularyIris = [
-        'o' => 'http://omeka.org/s/vocabs/o#',
-        // Used by media "html" and not in the default namespaces.
-        /** @see \Omeka\Module::filterHtmlMediaJsonLd() */
-        'o-cnt' => 'http://www.w3.org/2011/content#',
-        // Used by media "youtube". The default prefix "time" is kept.
-        /** @see \Omeka\Module::filterYoutubeMediaJsonLd() */
-        'o-time' => 'http://www.w3.org/2006/time#',
-        // Add contexts used by easyrdf.
-        // The recommended is dc = full dc, but dc11 is not common.
-        'dc' => 'http://purl.org/dc/elements/1.1/',
-        // dcterms is included in default namespaces.
-        // 'dcterms' => 'http://purl.org/dc/terms/',
-    ];
-
-    /**
      * RDF resource properties to keep in all cases.
      *
      * @var array
@@ -138,7 +115,36 @@ class IndexTriplestore extends AbstractJob
     /**
      * @var int
      */
+    protected $totalErrors = 0;
+
+    /**
+     * @var int
+     */
     protected $totalResults = 0;
+
+    /**
+     * Specific property prefixes.
+     *
+     * @see \EasyRdf\RdfNamespace::initial_namespaces
+     * @see https://www.w3.org/2011/rdfa-context/rdfa-1.1
+     * @see https://www.w3.org/2013/json-ld-context/rdfa11
+     *
+     * @var array
+     */
+    protected $vocabularyIris = [
+        'o' => 'http://omeka.org/s/vocabs/o#',
+        // Used by media "html" and not in the default namespaces.
+        /** @see \Omeka\Module::filterHtmlMediaJsonLd() */
+        'o-cnt' => 'http://www.w3.org/2011/content#',
+        // Used by media "youtube". The default prefix "time" is kept.
+        /** @see \Omeka\Module::filterYoutubeMediaJsonLd() */
+        'o-time' => 'http://www.w3.org/2006/time#',
+        // Add contexts used by easyrdf.
+        // The recommended is dc = full dc, but dc11 is not common.
+        'dc' => 'http://purl.org/dc/elements/1.1/',
+        // dcterms is included in default namespaces.
+        // 'dcterms' => 'http://purl.org/dc/terms/',
+    ];
 
     public function perform(): void
     {
@@ -232,8 +238,8 @@ class IndexTriplestore extends AbstractJob
         $timeTotal = (int) (microtime(true) - $timeStart);
 
         $this->logger->notice(
-            'Sparql dataset "{dataset}": end of indexing. {total} resources indexed. Execution time: {duration} seconds.', // @translate
-            ['dataset' => $this->datasetName, 'total' => $this->totalResults, 'duration' => $timeTotal]
+            'Sparql dataset "{dataset}": end of indexing. {total} resources indexed ({total_errors} errors). Execution time: {duration} seconds.', // @translate
+            ['dataset' => $this->datasetName, 'total' => $this->totalResults, 'total_errors' => $this->totalErrors, 'duration' => $timeTotal]
         );
     }
 
@@ -345,7 +351,7 @@ class IndexTriplestore extends AbstractJob
      */
     protected function storeResource(AbstractResourceEntityRepresentation $resource): self
     {
-        // Don't use jsonSerialize(), that serialize only first level.
+        // Don't use jsonSerialize(), that serializes only first level.
         $json = json_decode(json_encode($resource), true);
 
         // Manage the special case of rdfs:label.
@@ -395,9 +401,19 @@ class IndexTriplestore extends AbstractJob
         $id = $resource->apiUrl();
         $json['@context'] = $this->context;
 
-        // Serialize the json as turtle.
         $graph = new Graph($id);
-        $graph->parse(json_encode($json), 'jsonld', $id);
+        try {
+            $graph->parse(json_encode($json), 'jsonld', $id);
+        } catch (Exception $e) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}": The {resource_type} #{resource_id} cannot be indexed: {message}', // @translate
+                ['dataset' => $this->datasetName, 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id(), 'message' => $e->getMessage()]
+            );
+            ++$this->totalErrors;
+            return $this;
+        }
+
+        // Serialize the json as turtle.
         $turtle = $graph->serialise('turtle');
 
         // Remove vocabularies.
@@ -413,11 +429,16 @@ class IndexTriplestore extends AbstractJob
      */
     protected function initPrefixes(): self
     {
+        // TODO Set the default vocabulary @vocab first but easyrdf returns error.
+        $this->context = [
+            // '@vocab' => 'http://omeka.org/s/vocabs/o#',
+        ];
+
         // In Omeka, an event is needed to get all the vocabularies.
         $eventManager = $this->getServiceLocator()->get('EventManager');
         $args = $eventManager->prepareArgs(['context' => []]);
         $eventManager->trigger('api.context', null, $args);
-        $this->context = $args['context'] + $this->vocabularyIris;
+        $this->context += $args['context'] + $this->vocabularyIris;
         ksort($this->context);
 
         // Initialise namespaces with all prefixes from Omeka.
@@ -499,6 +520,9 @@ SQL;
                 }
             }
         }
+
+        // TODO Manage module Data Type Geometry?
+        // http://www.opengis.net/ont/geosparql
 
         if ($this->rdfsLabel) {
             $prefixIris[strtok($this->rdfsLabel, ':')] = 'http://www.w3.org/2000/01/rdf-schema#';
