@@ -10,6 +10,13 @@ return [
     ],
     'searchsparql' => [
         'config' => [
+            'searchsparql_property_whitelist' => [
+            ],
+            'searchsparql_property_blacklist' => [
+                'dcterms:tableOfContents',
+                'bibo:content',
+                'extracttext:extracted_text',
+            ],
         ],
     ],
 ];

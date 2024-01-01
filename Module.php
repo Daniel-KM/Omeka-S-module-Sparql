@@ -62,11 +62,16 @@ class Module extends AbstractModule
         }
 
         $services = $this->getServiceLocator();
+        $config = $services->get('Config');
         $plugins = $services->get('ControllerPluginManager');
+        $settings = $services->get('Omeka\Settings');
         $urlPlugin = $plugins->get('url');
         $messenger = $plugins->get('messenger');
 
+        $configModule = $config['searchsparql']['config'];
         $args = [
+            'property_whitelist' => $settings->get('searchsparql_property_whitelist', $configModule['searchsparql_property_whitelist']),
+            'property_blacklist' => $settings->get('searchsparql_property_blacklist', $configModule['searchsparql_property_blacklist']),
         ];
 
         // Use synchronous dispatcher for quick testing purpose.

@@ -78,6 +78,16 @@ class IndexTriplestore extends AbstractJob
     ];
 
     /**
+     * @var array
+     */
+    protected $propertyBlacklist;
+
+    /**
+     * @var array
+     */
+    protected $propertyWhitelist;
+
+    /**
      * @var int
      */
     protected $totalResults = 0;
@@ -95,7 +105,9 @@ class IndexTriplestore extends AbstractJob
         $this->logger = $services->get('Omeka\Logger');
 
         $config = $services->get('Config');
+        $settings = $services->get('Omeka\Settings');
         $easyMeta = $services->get('EasyMeta');
+        $configModule = $config['searchsparql']['config'];
 
         // The reference id is the job id for now.
         if (class_exists('Log\Stdlib\PsrMessage')) {
@@ -115,6 +127,12 @@ class IndexTriplestore extends AbstractJob
 
         // Init properties.
         $this->properties = $easyMeta->propertyIds();
+
+        $this->propertyWhitelist = $this->getArg('property_whitelist', $settings->get('searchsparql_property_whitelist', $configModule['searchsparql_property_whitelist']));
+        $this->propertyWhitelist = array_intersect_key(array_combine($this->propertyWhitelist, $this->propertyWhitelist), $this->properties);
+
+        $this->propertyBlacklist = $this->getArg('property_blacklist', $settings->get('searchsparql_property_blacklist', $configModule['searchsparql_property_blacklist']));
+        $this->propertyBlacklist = array_intersect_key(array_combine($this->propertyBlacklist, $this->propertyBlacklist), $this->properties);
 
         // Prepare output path.
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
@@ -239,7 +257,13 @@ class IndexTriplestore extends AbstractJob
         $json = json_decode(json_encode($resource), true);
 
         // Don't store specific metadata.
-        $json = array_intersect_key($json, $this->propertyMeta + $this->properties);
+        $json = $this->propertyWhitelist
+            ? array_intersect_key($json, $this->propertyMeta + $this->propertyWhitelist)
+            : array_intersect_key($json, $this->propertyMeta + $this->properties);
+
+        if ($this->propertyBlacklist) {
+            $json = array_diff_key($json, $this->propertyBlacklist);
+        }
 
         $id = $resource->apiUrl();
         $json['@context'] = $this->context;
