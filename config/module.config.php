@@ -38,6 +38,11 @@ return [
                 'html',
                 'xml',
             ],
+            'sparql_indexes' => [
+                'turtle',
+                'arc2',
+                // 'fuseki',
+            ],
         ],
     ],
 ];

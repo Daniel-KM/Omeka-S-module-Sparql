@@ -2,6 +2,8 @@
 
 namespace Sparql\Job;
 
+use ARC2;
+use ARC2_Store;
 use EasyRdf\Graph;
 use EasyRdf\RdfNamespace;
 use Exception;
@@ -21,6 +23,11 @@ class IndexTriplestore extends AbstractJob
     protected $connection;
 
     /**
+     * @var \Common\Stdlib\EasyMeta
+     */
+    protected $easyMeta;
+
+    /**
      * @var \Doctrine\ORM\EntityManager
      */
     protected $entityManager;
@@ -29,6 +36,16 @@ class IndexTriplestore extends AbstractJob
      * @var \Laminas\Log\Logger
      */
     protected $logger;
+
+    /**
+     * @var \Omeka\Settings\Settings
+     */
+    protected $settings;
+
+    /**
+     * @var array
+     */
+    protected $config;
 
     /**
      * @var array
@@ -54,6 +71,11 @@ class IndexTriplestore extends AbstractJob
      * @var string
      */
     protected $dataTypeBlackList;
+
+    /**
+     * @var array
+     */
+    protected $indexes;
 
     /**
      * @var string
@@ -153,16 +175,13 @@ class IndexTriplestore extends AbstractJob
          * @var \Doctrine\ORM\EntityManager $entityManager
          */
         $services = $this->getServiceLocator();
-
         $this->api = $services->get('Omeka\ApiManager');
+        $this->config = $services->get('Config');
+        $this->logger = $services->get('Omeka\Logger');
+        $this->settings = $services->get('Omeka\Settings');
+        $this->easyMeta= $services->get('EasyMeta');
         $this->connection = $services->get('Omeka\Connection');
         $this->entityManager = $services->get('Omeka\EntityManager');
-        $this->logger = $services->get('Omeka\Logger');
-
-        $config = $services->get('Config');
-        $settings = $services->get('Omeka\Settings');
-        $easyMeta = $services->get('EasyMeta');
-        $configModule = $config['sparql']['config'];
 
         // The reference id is the job id for now.
         $referenceIdProcessor = new \Laminas\Log\Processor\ReferenceId();
@@ -171,11 +190,79 @@ class IndexTriplestore extends AbstractJob
 
         $this->datasetName = 'triplestore';
 
-        // Init options.
+        // Define indexes to create.
 
-        $this->resourceTypes = $this->getArg('resource_types', $settings->get('sparql_resource_types', $configModule['sparql_resource_types']));
+        $this->indexes = $this->getArg('indexes', $this->settings->get('sparql_indexes', $this->config['sparql']['config']['sparql_indexes']));
+        if (empty($this->indexes)) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}": no index defined. Existing indexes are kept.', // @translate
+                ['dataset' => $this->datasetName]
+            );
+            return;
+        }
 
-        $this->resourceQuery = $this->getArg('resource_query', $settings->get('sparql_resource_query', $configModule['sparql_resource_query']));
+        // Prepare output path.
+        $basePath = $this->config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $this->filepath = $basePath . '/triplestore/' . $this->datasetName . '.ttl';
+
+        if (!in_array('turtle', $this->indexes)) {
+            if (!file_exists($this->filepath)) {
+                $this->logger->warn(
+                    'Sparql dataset "{dataset}": unable to index without triplestore.', // @translate
+                    ['dataset' => $this->datasetName]
+                );
+                return;
+            }
+            if (!filesize($this->filepath)) {
+                $this->logger->warn(
+                    'Sparql dataset "{dataset}": unable to index an empty triplestore.', // @translate
+                    ['dataset' => $this->datasetName]
+                );
+                return;
+            }
+        } else {
+            file_put_contents($this->filepath, '');
+        }
+
+        if (in_array('turtle', $this->indexes)) {
+            $this->initOptions();
+
+            $this->logger->notice(
+                'Sparql dataset "{dataset}": start of indexing', // @translate
+                ['dataset' => $this->datasetName]
+            );
+
+            $timeStart = microtime(true);
+
+            $this->processindex();
+
+            $timeTotal = (int) (microtime(true) - $timeStart);
+
+            $this->logger->notice(
+                'Sparql dataset "{dataset}": end of indexing. {total} resources indexed ({total_errors} errors). Execution time: {duration} seconds.', // @translate
+                ['dataset' => $this->datasetName, 'total' => $this->totalResults, 'total_errors' => $this->totalErrors, 'duration' => $timeTotal]
+            );
+        }
+
+        if (in_array('arc2', $this->indexes)) {
+            $timeStart = microtime(true);
+
+            $this->indexArc2();
+
+            $timeTotal = (int) (microtime(true) - $timeStart);
+
+            $this->logger->notice(
+                'Sparql dataset "{dataset}": end of indexing in Arc2. Execution time: {duration} seconds.', // @translate
+                ['dataset' => $this->datasetName, 'duration' => $timeTotal]
+            );
+        }
+    }
+
+    protected function initOptions(): self
+    {
+        $this->resourceTypes = $this->getArg('resource_types', $this->settings->get('sparql_resource_types', $this->config['sparql']['config']['sparql_resource_types']));
+
+        $this->resourceQuery = $this->getArg('resource_query', $this->settings->get('sparql_resource_query', $this->config['sparql']['config']['sparql_resource_query']));
         if ($this->resourceQuery) {
             $query = [];
             parse_str((string) $this->resourceQuery, $query);
@@ -184,22 +271,22 @@ class IndexTriplestore extends AbstractJob
             $this->resourceQuery = [];
         }
 
-        $this->resourcePublicOnly = !$this->getArg('resource_private', $settings->get('sparql_resource_private', $configModule['sparql_resource_private']));
+        $this->resourcePublicOnly = !$this->getArg('resource_private', $this->settings->get('sparql_resource_private', $this->config['sparql']['config']['sparql_resource_private']));
         if ($this->resourcePublicOnly) {
             $this->resourceQuery['is_public'] = true;
         }
 
-        $this->properties = $easyMeta->propertyIds();
+        $this->properties = $this->easyMeta->propertyIds();
 
-        $this->propertyWhiteList = $this->getArg('property_whitelist', $settings->get('sparql_property_whitelist', $configModule['sparql_property_whitelist']));
+        $this->propertyWhiteList = $this->getArg('property_whitelist', $this->settings->get('sparql_property_whitelist', $this->config['sparql']['config']['sparql_property_whitelist']));
         $this->propertyWhiteList = array_intersect_key(array_combine($this->propertyWhiteList, $this->propertyWhiteList), $this->properties);
 
-        $this->propertyBlackList = $this->getArg('property_blacklist', $settings->get('sparql_property_blacklist', $configModule['sparql_property_blacklist']));
+        $this->propertyBlackList = $this->getArg('property_blacklist', $this->settings->get('sparql_property_blacklist', $this->config['sparql']['config']['sparql_property_blacklist']));
         $this->propertyBlackList = array_intersect_key(array_combine($this->propertyBlackList, $this->propertyBlackList), $this->properties);
 
         $this->initPrefixes();
 
-        $fieldsIncluded = $this->getArg('fields_included', $settings->get('sparql_fields_included', $configModule['sparql_fields_included']));
+        $fieldsIncluded = $this->getArg('fields_included', $this->settings->get('sparql_fields_included', $this->config['sparql']['config']['sparql_fields_included']));
         $pos = array_search('rdfs:label', $fieldsIncluded);
         if ($pos !== false) {
             $fieldsIncluded[$pos] = RdfNamespace::prefixOfUri('http://www.w3.org/2000/01/rdf-schema#') . ':label';
@@ -209,15 +296,10 @@ class IndexTriplestore extends AbstractJob
 
         $this->initPrefixesShort();
 
-        $this->dataTypeWhiteList = $this->getArg('datatype_whitelist', $settings->get('sparql_datatype_whitelist', $configModule['sparql_datatype_whitelist']));
+        $this->dataTypeWhiteList = $this->getArg('datatype_whitelist', $this->settings->get('sparql_datatype_whitelist', $this->config['sparql']['config']['sparql_datatype_whitelist']));
         $this->dataTypeWhiteList = array_combine($this->dataTypeWhiteList, $this->dataTypeWhiteList);
-        $this->dataTypeBlackList = $this->getArg('datatype_blacklist', $settings->get('sparql_datatype_blacklist', $configModule['sparql_datatype_blacklist']));
+        $this->dataTypeBlackList = $this->getArg('datatype_blacklist', $this->settings->get('sparql_datatype_blacklist', $this->config['sparql']['config']['sparql_datatype_blacklist']));
         $this->dataTypeBlackList = array_combine($this->dataTypeBlackList, $this->dataTypeBlackList);
-
-        // Prepare output path.
-        $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $this->filepath = $basePath . '/triplestore/' . $this->datasetName . '.ttl';
-        file_put_contents($this->filepath, '');
 
         if (in_array('media', $this->resourceTypes) && !in_array('items', $this->resourceTypes)) {
             $this->logger->warn(
@@ -226,21 +308,7 @@ class IndexTriplestore extends AbstractJob
             );
         }
 
-        $timeStart = microtime(true);
-
-        $this->logger->notice(
-            'Sparql dataset "{dataset}": start of indexing', // @translate
-            ['dataset' => $this->datasetName]
-        );
-
-        $this->processindex();
-
-        $timeTotal = (int) (microtime(true) - $timeStart);
-
-        $this->logger->notice(
-            'Sparql dataset "{dataset}": end of indexing. {total} resources indexed ({total_errors} errors). Execution time: {duration} seconds.', // @translate
-            ['dataset' => $this->datasetName, 'total' => $this->totalResults, 'total_errors' => $this->totalErrors, 'duration' => $timeTotal]
-        );
+        return $this;
     }
 
     /**
@@ -530,6 +598,109 @@ SQL;
 
         ksort($prefixIris);
         $this->contextShort = $prefixIris;
+
+        return $this;
+    }
+
+    /**
+     * Help on getStoreEndpoint() and getStore().
+     * @see https://github.com/semsol/arc2/wiki/Getting-started-with-ARC2
+     * @see https://github.com/semsol/arc2/wiki/SPARQL-Endpoint-Setup
+     *
+     * @see \Sparql\Controller\IndexController::getSparqlTriplestore()
+     * @see \Sparql\Job\IndexTriplestore::indexArc2()
+     */
+    protected function indexArc2(): self
+    {
+        if (!file_exists($this->filepath) || !is_readable($this->filepath)) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}": A triplestore is required first to index in arc2.', // @translate
+                ['dataset' => $this->datasetName]
+            );
+            return $this;
+        }
+        if (!filesize($this->filepath)) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}": The triplestore is empty.', // @translate
+                ['dataset' => $this->datasetName]
+            );
+            return $this;
+        }
+
+        /** @var \ARC2_TurtleParser $parser */
+        /*
+         $parser = ARC2::getRDFParser();
+         $parser->parse($this->filepath);
+         $triples = $parser->getTriples();
+         */
+
+        // Endpoint configuration.
+        $db = $this->connection->getParams();
+        $configArc2 = [
+            // Database.
+            'db_host' => $db['host'],
+            'db_name' => $db['dbname'],
+            'db_user' => $db['user'],
+            'db_pwd' => $db['password'],
+
+            // Network.
+            // 'proxy_host' => '192.168.1.1',
+            // 'proxy_port' => 8080,
+            // Parsers.
+            // 'bnode_prefix' => 'bn',
+            // Semantic html extraction.
+            // 'sem_html_formats' => 'rdfa microformats',
+
+            // Store name.
+            'store_name' => $this->datasetName,
+
+            // Stop after 100 errors.
+            'max_errors' => 100,
+
+            // Endpoint.
+            'endpoint_features' => [
+                'select',
+                'construct',
+                'ask',
+                'describe',
+                'load',
+                'insert',
+                'delete',
+                // Dump is a special command for streaming SPOG export.
+                'dump',
+            ],
+
+            // Not implemented in ARC2 preview.
+            'endpoint_timeout' => 60,
+            'endpoint_read_key' => '',
+            'endpoint_write_key' => '',
+            'endpoint_max_limit' => \Omeka\Stdlib\Paginator::PER_PAGE,
+        ];
+
+        try {
+            /** @var \ARC2_Store $store */
+            $store = ARC2::getStore($configArc2);
+            $store->createDBCon();
+            if (!$store->isSetUp()) {
+                $store->setUp();
+            }
+        } catch (Exception $e) {
+            $this->logger->err($e);
+            return $this;
+        }
+
+        try {
+            $store->reset(true);
+            $store->query("LOAD <file://{$this->filepath}>");
+        } catch (Exception $e) {
+            $this->logger->err($e);
+            return $this;
+        }
+
+        $errors = $store->getErrors();
+        if ($errors) {
+            $this->logger->err(implode("\n", $errors));
+        }
 
         return $this;
     }

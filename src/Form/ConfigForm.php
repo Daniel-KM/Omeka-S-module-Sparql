@@ -2,6 +2,7 @@
 
 namespace Sparql\Form;
 
+use Common\Form\Element as CommonElement;
 use Laminas\Form\Element;
 use Laminas\Form\Form;
 use Omeka\Form\Element as OmekaElement;
@@ -99,7 +100,7 @@ class ConfigForm extends Form
             ])
             ->add([
                 'name' => 'sparql_datatype_whitelist',
-                'type' => OmekaElement\DataTypeSelect::class,
+                'type' => CommonElement\DataTypeSelect::class,
                 'options' => [
                     'label' => 'Limit indexation to specific data types (white list)', // @translate
                     'empty_option' => '',
@@ -113,7 +114,7 @@ class ConfigForm extends Form
             ])
             ->add([
                 'name' => 'sparql_datatype_blacklist',
-                'type' => OmekaElement\DataTypeSelect::class,
+                'type' => CommonElement\DataTypeSelect::class,
                 'options' => [
                     'label' => 'Skip indexation for specific data types (black list)', // @translate
                     'empty_option' => '',
@@ -126,14 +127,28 @@ class ConfigForm extends Form
                 ],
             ])
             ->add([
-                'name' => 'process_triplestore',
-                'type' => Element\Submit::class,
+                'name' => 'sparql_indexes',
+                'type' => Element\MultiCheckbox::class,
                 'options' => [
-                    'label' => 'Index json-ld database in a triplestore', // @translate
+                    'label' => 'Index in sparql engine', // @translate
+                    'value_options' => [
+                        'turtle' => 'Triplestore (turtle)', // @translate
+                        'arc2' => 'Semsol Arc2 (internal)', // @translate
+                    ],
                 ],
                 'attributes' => [
-                    'id' => 'process_triplestore',
-                    'value' => 'Index triplestore', // @translate
+                    'id' => 'sparql_indexes',
+                ],
+            ])
+            ->add([
+                'name' => 'process',
+                'type' => Element\Submit::class,
+                'options' => [
+                    'label' => 'Index', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'process',
+                    'value' => 'Process', // @translate
                 ],
             ])
         ;
@@ -162,6 +177,10 @@ class ConfigForm extends Form
             ])
             ->add([
                 'name' => 'sparql_datatype_blacklist',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'sparql_indexes',
                 'required' => false,
             ])
         ;

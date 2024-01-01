@@ -8,6 +8,7 @@ if (!class_exists(\Common\TraitModule::class)) {
 
 use Common\Stdlib\PsrMessage;
 use Common\TraitModule;
+use Laminas\ModuleManager\ModuleManager;
 use Laminas\Mvc\Controller\AbstractController;
 use Omeka\Module\AbstractModule;
 use Omeka\Module\Exception\ModuleCannotInstallException;
@@ -23,6 +24,11 @@ class Module extends AbstractModule
     const NAMESPACE = __NAMESPACE__;
 
     use TraitModule;
+
+    public function init(ModuleManager $moduleManager): void
+    {
+        require_once __DIR__ . '/vendor/autoload.php';
+    }
 
     protected function preInstall(): void
     {
@@ -57,7 +63,7 @@ class Module extends AbstractModule
         }
 
         $params = $controller->getRequest()->getPost();
-        if (empty($params['process_triplestore'])) {
+        if (empty($params['process'])) {
             return true;
         }
 
@@ -77,6 +83,7 @@ class Module extends AbstractModule
             'property_blacklist' => $settings->get('sparql_property_blacklist', $configModule['sparql_property_blacklist']),
             'datatype_whitelist' => $settings->get('sparql_datatype_whitelist', $configModule['sparql_datatype_whitelist']),
             'datatype_blacklist' => $settings->get('sparql_datatype_blacklist', $configModule['sparql_datatype_blacklist']),
+            'indexes' => $settings->get('sparql_indexes', $configModule['sparql_indexes']),
         ];
 
         if (!in_array('html', $args['datatype_blacklist']) || !in_array('xml', $args['datatype_blacklist'])) {
