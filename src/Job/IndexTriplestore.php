@@ -3,6 +3,7 @@
 namespace SearchSparql\Job;
 
 use EasyRdf\Graph;
+use EasyRdf\RdfNamespace;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 use Omeka\Job\AbstractJob;
 use Omeka\Stdlib\Message;
@@ -66,15 +67,19 @@ class IndexTriplestore extends AbstractJob
     /**
      * Specific property prefixes.
      *
+     * @see \EasyRdf\RdfNamespace::initial_namespaces
+     * @see https://www.w3.org/2011/rdfa-context/rdfa-1.1
+     * @see https://www.w3.org/2013/json-ld-context/rdfa11
+     *
      * @var array
      */
-    protected $propertyPrefixes = [
+    protected $vocabularyUris = [
         'o' => 'http://omeka.org/s/vocabs/o#',
         'o-cnt' => 'http://www.w3.org/2011/content#',
         'o-time' => 'http://www.w3.org/2006/time#',
         // Add contexts used by easyrdf.
-        'dc' => 'http://purl.org/dc/terms/',
-        'xsd' => 'http://www.w3.org/2001/XMLSchema#',
+        'dc' => 'http://purl.org/dc/elements/1.1/',
+        'dcterms' => 'http://purl.org/dc/terms/',
     ];
 
     /**
@@ -126,13 +131,6 @@ class IndexTriplestore extends AbstractJob
             $this->logger->addProcessor($referenceIdProcessor);
         }
 
-        // In Omeka, an event is needed to get all the vocabularies.
-        $eventManager = $services->get('EventManager');
-        $args = $eventManager->prepareArgs(['context' => []]);
-        $eventManager->trigger('api.context', null, $args);
-        $this->context = $args['context'] + $this->propertyPrefixes;
-        ksort($this->context);
-
         $this->datasetName = 'triplestore';
 
         // Init options.
@@ -155,6 +153,8 @@ class IndexTriplestore extends AbstractJob
 
         $this->propertyBlacklist = $this->getArg('property_blacklist', $settings->get('searchsparql_property_blacklist', $configModule['searchsparql_property_blacklist']));
         $this->propertyBlacklist = array_intersect_key(array_combine($this->propertyBlacklist, $this->propertyBlacklist), $this->properties);
+
+        $this->initPrefixes();
 
         // Prepare output path.
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
@@ -318,6 +318,29 @@ class IndexTriplestore extends AbstractJob
         $turtle = $graph->serialise('turtle');
 
         file_put_contents($this->filepath, $turtle . PHP_EOL, FILE_APPEND | LOCK_EX);
+
+        return $this;
+    }
+
+    protected function initPrefixes(): self
+    {
+        // In Omeka, an event is needed to get all the vocabularies.
+        $eventManager = $this->getServiceLocator()->get('EventManager');
+        $args = $eventManager->prepareArgs(['context' => []]);
+        $eventManager->trigger('api.context', null, $args);
+        $this->context = $args['context'] + $this->vocabularyUris;
+        ksort($this->context);
+
+        // Initialise namespaces with all prefixes from Omeka.
+        /** @see \EasyRdf\RdfNamespace::initial_namespaces */
+        $initialNamespaces = RdfNamespace::namespaces();
+        foreach ($this->context as $prefix => $uri) {
+            $search = array_search($uri, $initialNamespaces);
+            if ($search !== false) {
+                RdfNamespace::delete($prefix);
+            }
+            RdfNamespace::set($prefix, $uri);
+        }
 
         return $this;
     }
