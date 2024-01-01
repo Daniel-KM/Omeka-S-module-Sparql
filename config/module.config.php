@@ -13,10 +13,16 @@ return [
             'sparqlSearch' => Service\ViewHelper\SparqlSearchFactory::class,
         ],
     ],
+    'block_layouts' => [
+        'invokables' => [
+            'sparql' => Site\BlockLayout\Sparql::class,
+        ],
+    ],
     'form_elements' => [
         'invokables' => [
             Form\ConfigForm::class => Form\ConfigForm::class,
             Form\SparqlForm::class => Form\SparqlForm::class,
+            Form\SparqlFieldset::class => Form\SparqlFieldset::class,
         ],
     ],
     'controllers' => [
@@ -79,6 +85,12 @@ return [
             ],
             // TODO Manage api credentials for arc2.
             'sparql_arc2_write_key' => '',
+        ],
+        'block_settings' => [
+            'sparql' => [
+                'heading' => null,
+                'template' => '',
+            ],
         ],
     ],
 ];
