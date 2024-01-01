@@ -28,7 +28,8 @@ class SparqlSearchFactory implements FactoryInterface
             $plugins->get('messenger'),
             $plugins->get('params'),
             $services->get('Omeka\Settings'),
-            $basePath
+            $basePath,
+            (int) $config['sparql']['config']['sparql_limit_per_page']
         );
     }
 }

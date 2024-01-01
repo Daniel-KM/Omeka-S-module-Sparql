@@ -85,6 +85,7 @@ return [
             ],
             // TODO Manage api credentials for arc2.
             'sparql_arc2_write_key' => '',
+            'sparql_limit_per_page' => 250,
         ],
         'block_settings' => [
             'sparql' => [

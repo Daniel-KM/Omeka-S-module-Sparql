@@ -127,6 +127,29 @@ class ConfigForm extends Form
                 ],
             ])
             ->add([
+                'name' => 'sparql_arc2_write_key',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Write access key for Arc2 (random)', // @translate
+                ],
+                // This value is stored in table triplestore_setting, managed by arc2.
+                'attributes' => [
+                    'id' => 'sparql_arc2_write_key',
+                    'readonly' => 'readonly',
+                    'value' => substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(128))), 0, 24),
+                ],
+            ])
+            ->add([
+                'name' => 'sparql_limit_per_page',
+                'type' => Element\Number::class,
+                'options' => [
+                    'label' => 'Max number of results per page', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'sparql_limit_per_page',
+                ],
+            ])
+            ->add([
                 'name' => 'sparql_indexes',
                 'type' => Element\MultiCheckbox::class,
                 'options' => [
@@ -138,19 +161,6 @@ class ConfigForm extends Form
                 ],
                 'attributes' => [
                     'id' => 'sparql_indexes',
-                ],
-            ])
-            ->add([
-                'name' => 'sparql_arc2_write_key',
-                'type' => Element\Text::class,
-                'options' => [
-                    'label' => 'Write access key for Arc2 (random)', // @translate
-                ],
-                // This value is stored in table triplestore_setting, managed by arc2.
-                'attributes' => [
-                    'id' => 'sparql_arc2_write_key',
-                    'readonly' => 'readonly',
-                    'value' => substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(128))), 0, 24),
                 ],
             ])
             ->add([

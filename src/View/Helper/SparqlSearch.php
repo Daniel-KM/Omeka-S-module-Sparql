@@ -57,6 +57,11 @@ class SparqlSearch extends AbstractHelper
      */
     protected $basePath;
 
+    /**
+     * @var int
+     */
+    protected $limitPerPage;
+
     public function __construct(
         Connection $connection,
         CurrentSite $currentSite,
@@ -64,7 +69,8 @@ class SparqlSearch extends AbstractHelper
         Messenger $messenger,
         Params $params,
         Settings $settings,
-        string $basePath
+        string $basePath,
+        int $limitPerPage
     ) {
         $this->connection = $connection;
         $this->currentSite = $currentSite;
@@ -73,6 +79,7 @@ class SparqlSearch extends AbstractHelper
         $this->params = $params;
         $this->settings = $settings;
         $this->basePath = $basePath;
+        $this->limitPerPage = $limitPerPage;
     }
 
     /**
@@ -137,6 +144,7 @@ class SparqlSearch extends AbstractHelper
     protected function getSparqlTriplestore(bool $isEndpoint = false): ?ARC2_Store
     {
         $writeKey = $this->settings->get('sparql_arc2_write_key') ?: '';
+        $limitPerPage = (int) $this->settings->get('sparql_limit_per_page') ?: $this->limitPerPage;
 
         // Endpoint configuration.
         $db = $this->connection->getParams();
@@ -178,7 +186,7 @@ class SparqlSearch extends AbstractHelper
             'endpoint_timeout' => 60,
             'endpoint_read_key' => '',
             'endpoint_write_key' => $writeKey,
-            'endpoint_max_limit' => \Omeka\Stdlib\Paginator::PER_PAGE,
+            'endpoint_max_limit' => $limitPerPage,
         ];
 
         try {

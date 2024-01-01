@@ -652,6 +652,7 @@ SQL;
          */
 
         $writeKey = $this->settings->get('sparql_arc2_write_key') ?: '';
+        $limitPerPage = (int) $this->settings->get('sparql_limit_per_page') ?: (int) $this->config['sparql']['config']['sparql_limit_per_page'];
 
         // Endpoint configuration.
         $db = $this->connection->getParams();
@@ -695,7 +696,7 @@ SQL;
             'endpoint_timeout' => 60,
             'endpoint_read_key' => '',
             'endpoint_write_key' => $writeKey,
-            'endpoint_max_limit' => \Omeka\Stdlib\Paginator::PER_PAGE,
+            'endpoint_max_limit' => $limitPerPage,
         ];
 
         try {
