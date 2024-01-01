@@ -228,7 +228,7 @@ class IndexTriplestore extends AbstractJob
             $this->initOptions();
 
             $this->logger->notice(
-                'Sparql dataset "{dataset}": start of indexing', // @translate
+                'Sparql dataset "{dataset}": start of indexing triplestore.', // @translate
                 ['dataset' => $this->datasetName]
             );
 
@@ -245,6 +245,11 @@ class IndexTriplestore extends AbstractJob
         }
 
         if (in_array('arc2', $this->indexes)) {
+            $this->logger->notice(
+                'Sparql dataset "{dataset}": start of indexing in Arc2.', // @translate
+                ['dataset' => $this->datasetName]
+            );
+
             $timeStart = microtime(true);
 
             $this->indexArc2();
@@ -346,6 +351,13 @@ class IndexTriplestore extends AbstractJob
                 $this->storeResource($itemSet);
                 ++$this->totalResults;
                 if (++$i % 100 === 0) {
+                    if ($this->shouldStop()) {
+                        $this->logger->warn(
+                            'Sparql dataset "{dataset}": The job was stopped. Indexed {count}/{total} item sets.', // @translate
+                            ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
+                        );
+                        return $this;
+                    }
                     $this->logger->info(
                         'Sparql dataset "{dataset}": indexed {count}/{total} item sets.', // @translate
                         ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
@@ -401,6 +413,13 @@ class IndexTriplestore extends AbstractJob
                 }
                 ++$this->totalResults;
                 if (++$i % 100 === 0) {
+                    if ($this->shouldStop()) {
+                        $this->logger->warn(
+                            'Sparql dataset "{dataset}": The job was stopped. Indexed {count}/{total} items.', // @translate
+                            ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
+                        );
+                        return $this;
+                    }
                     $this->logger->info(
                         'Sparql dataset "{dataset}": indexed {count}/{total} items.', // @translate
                         ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
