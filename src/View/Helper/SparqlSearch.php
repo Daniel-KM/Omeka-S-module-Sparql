@@ -300,6 +300,10 @@ class SparqlSearch extends AbstractHelper
             $prefixIris['rdfs'] = 'http://www.w3.org/2000/01/rdf-schema#';
         }
 
+        if (class_exists('DataTypeGeometry\Entity\DataTypeGeography')) {
+            $prefixIris['geo'] = 'http://www.opengis.net/ont/geosparql#';
+        }
+
         $sql = <<<SQL
 SELECT vocabulary.prefix, vocabulary.namespace_uri
 FROM vocabulary

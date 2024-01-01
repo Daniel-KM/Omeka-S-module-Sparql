@@ -306,6 +306,26 @@ class IndexTriplestore extends AbstractJob
         $this->dataTypeBlackList = $this->getArg('datatype_blacklist', $this->settings->get('sparql_datatype_blacklist', $this->config['sparql']['config']['sparql_datatype_blacklist']));
         $this->dataTypeBlackList = array_combine($this->dataTypeBlackList, $this->dataTypeBlackList);
 
+        if ($this->isModuleActive('DataTypeGeometry')
+            && !$this->isModuleVersionAtLeast('DataTypeGeometry', '3.4.4')
+            && (
+                !isset($this->dataTypeBlackList['geography'])
+                || !isset($this->dataTypeBlackList['geography:coordinates'])
+                || !isset($this->dataTypeBlackList['geometry'])
+                || !isset($this->dataTypeBlackList['geometry:coordinates'])
+                || !isset($this->dataTypeBlackList['geometry:position'])
+            )
+        ) {
+            $this->logger->addWarning(
+                'The module DataTypeGeometry should be at least version 3.4.4 to index geographic and geometric values.', // @translate
+            );
+            $this->dataTypeBlackList['geography'] = 'geography';
+            $this->dataTypeBlackList['geography:coordinates'] = 'geography:coordinates';
+            $this->dataTypeBlackList['geometry'] = 'geometry';
+            $this->dataTypeBlackList['geometry:coordinates'] = 'geometry:coordinates';
+            $this->dataTypeBlackList['geometry:position'] = 'geometry:position';
+        }
+
         if (in_array('media', $this->resourceTypes) && !in_array('items', $this->resourceTypes)) {
             $this->logger->warn(
                 'Sparql dataset "{dataset}": Medias cannot be indexed without indexing items.', // @translate
@@ -615,6 +635,10 @@ SQL;
             $prefixIris[strtok($this->rdfsLabel, ':')] = 'http://www.w3.org/2000/01/rdf-schema#';
         }
 
+        if (class_exists('DataTypeGeometry\Entity\DataTypeGeography')) {
+            $prefixIris['geo'] = 'http://www.opengis.net/ont/geosparql#';
+        }
+
         ksort($prefixIris);
         $this->contextShort = $prefixIris;
 
@@ -725,5 +749,42 @@ SQL;
         }
 
         return $this;
+    }
+
+    /**
+     * Check the version of a module.
+     *
+     * It is recommended to use checkModuleAvailability(), that manages the fact
+     * that the module may be required or not.
+     */
+    protected function isModuleVersionAtLeast(string $module, string $version): bool
+    {
+        $services = $this->getServiceLocator();
+        /** @var \Omeka\Module\Manager $moduleManager */
+        $moduleManager = $services->get('Omeka\ModuleManager');
+        $module = $moduleManager->getModule($module);
+        if (!$module) {
+            return false;
+        }
+
+        $moduleVersion = $module->getIni('version');
+        return $moduleVersion
+            && version_compare($moduleVersion, $version, '>=');
+    }
+
+    /**
+     * Check if a module is active.
+     *
+     * @param string $module
+     * @return bool
+     */
+    protected function isModuleActive(string $module): bool
+    {
+        $services = $this->getServiceLocator();
+        /** @var \Omeka\Module\Manager $moduleManager */
+        $moduleManager = $services->get('Omeka\ModuleManager');
+        $module = $moduleManager->getModule($module);
+        return $module
+            && $module->getState() === \Omeka\Module\Manager::STATE_ACTIVE;
     }
 }

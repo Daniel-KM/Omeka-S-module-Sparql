@@ -77,6 +77,16 @@ class Module extends AbstractModule
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
         $dirPath = $basePath . '/encyclopedia';
         $this->rmDir($dirPath);
+
+        if ($this->isModuleActive('DataTypeGeometry')
+            && !$this->isModuleVersionAtLeast('DataTypeGeometry', '3.4.4')
+        ) {
+            $message = new PsrMessage(
+                'The module DataTypeGeometry should be at least version 3.4.4 to index geographic and geometric values.', // @translate
+            );
+            $messenger = $this->services->get('ControllerPluginManager')->get('messenger');
+            $messenger->addWarning($message);
+        }
     }
 
     public function handleConfigForm(AbstractController $controller)
@@ -117,6 +127,22 @@ class Module extends AbstractModule
         if (!in_array('html', $args['datatype_blacklist']) || !in_array('xml', $args['datatype_blacklist'])) {
             $message = new PsrMessage(
                 'The data types html and xml are currently not supported and converted into literal.' // @translate
+            );
+            $messenger->addWarning($message);
+        }
+
+        if ($this->isModuleActive('DataTypeGeometry')
+            && !$this->isModuleVersionAtLeast('DataTypeGeometry', '3.4.4')
+            && (
+                !in_array('geography', $args['datatype_blacklist'])
+                || !in_array('geography:coordinates', $args['datatype_blacklist'])
+                || !in_array('geometry', $args['datatype_blacklist'])
+                || !in_array('geometry:coordinates', $args['datatype_blacklist'])
+                || !in_array('geometry:position', $args['datatype_blacklist'])
+            )
+        ) {
+            $message = new PsrMessage(
+                'The module DataTypeGeometry should be at least version 3.4.4 to index geographic and geometric values.', // @translate
             );
             $messenger->addWarning($message);
         }
