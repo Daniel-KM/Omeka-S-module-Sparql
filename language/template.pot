@@ -1,0 +1,251 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: view/common/sparql-search.phtml:58
+msgid "Namespaces"
+msgstr ""
+
+#: view/common/sparql-search.phtml:91 view/common/sparql-search.phtml:128
+msgid "Results"
+msgstr ""
+
+#: view/sparql/sparql/error.phtml:10 view/sparql/sparql/sparql.phtml:19
+msgid "Sparql"
+msgstr ""
+
+#: view/sparql/sparql/error.phtml:13
+msgid "The RDF triplestore is not available currently."
+msgstr ""
+
+#: view/sparql/sparql/sparql.phtml:19
+msgid "Triplestore"
+msgstr ""
+
+#: Module.php:66
+msgid "The directory \"{directory}\" is not writeable."
+msgstr ""
+
+#: Module.php:85 Module.php:145 src/Job/IndexTriplestore.php:320
+msgid ""
+"The module DataTypeGeometry should be at least version 3.4.4 to index "
+"geographic and geometric values."
+msgstr ""
+
+#: Module.php:129
+msgid ""
+"The data types html and xml are currently not supported and converted into "
+"literal."
+msgstr ""
+
+#: Module.php:160
+msgid ""
+"Indexing json-ld triplestore in background ({link_job}job #{job_id}"
+"{link_end}, {link_log}logs{link_end})."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:203
+msgid ""
+"Sparql dataset \"{dataset}\": no index defined. Existing indexes are kept."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:216
+msgid ""
+"Sparql dataset \"{dataset}\" ({format}): unable to index in triplestore."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:221
+msgid "Sparql dataset \"{dataset}\" ({format}): start of indexing triplestore."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:232
+msgid ""
+"Sparql dataset \"{dataset}\" ({format}): end of indexing. {total} resources "
+"indexed ({total_errors} errors). Execution time: {duration} seconds."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:243
+msgid "Sparql dataset \"{dataset}\" ({format}): unable to index in Arc2."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:248
+msgid "Sparql dataset \"{dataset}\" ({format}): start of indexing in Arc2."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:259
+msgid ""
+"Sparql dataset \"{dataset}\" ({format}): end of indexing in Arc2. Execution "
+"time: {duration} seconds."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:331
+msgid ""
+"Sparql dataset \"{dataset}\": Medias cannot be indexed without indexing "
+"items."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:383
+msgid "Sparql dataset \"{dataset}\" ({format}): indexing {total} item sets."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:399
+msgid ""
+"Sparql dataset \"{dataset}\" ({format}): The job was stopped. Indexed "
+"{count}/{total} item sets."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:405
+msgid ""
+"Sparql dataset \"{dataset}\" ({format}): indexed {count}/{total} item sets."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:420
+msgid "id"
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:433
+msgid ""
+"Sparql dataset \"{dataset}\" ({format}): indexing {total} items and attached "
+"medias."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:438
+msgid "Sparql dataset \"{dataset}\" ({format}): indexing {total} items."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:467
+msgid ""
+"Sparql dataset \"{dataset}\" ({format}): The job was stopped. Indexed "
+"{count}/{total} items."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:473
+msgid "Sparql dataset \"{dataset}\" ({format}): indexed {count}/{total} items."
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:545
+msgid "Sparql dataset \"{dataset}\", {resource_type} #{resource_id}: {message}"
+msgstr ""
+
+#: src/Job/IndexTriplestore.php:793
+msgid ""
+"Sparql dataset \"{dataset}\" ({format}), {resource_type} #{resource_id}: "
+"{message}"
+msgstr ""
+
+#: src/Form/ConfigForm.php:19
+msgid "Limit indexation to specific resources"
+msgstr ""
+
+#: src/Form/ConfigForm.php:23
+msgid "Medias"
+msgstr ""
+
+#: src/Form/ConfigForm.php:34
+msgid "Limit indexation of items with a query"
+msgstr ""
+
+#: src/Form/ConfigForm.php:44
+msgid "Output private resources and values"
+msgstr ""
+
+#: src/Form/ConfigForm.php:54
+msgid "Omeka metadata to include"
+msgstr ""
+
+#: src/Form/ConfigForm.php:64
+msgid "Title as rdf label"
+msgstr ""
+
+#: src/Form/ConfigForm.php:75
+msgid "Limit indexation to specific properties (white list)"
+msgstr ""
+
+#: src/Form/ConfigForm.php:83 src/Form/ConfigForm.php:98
+msgid "Select properties…"
+msgstr ""
+
+#: src/Form/ConfigForm.php:90
+msgid "Skip indexation for specific properties (black list)"
+msgstr ""
+
+#: src/Form/ConfigForm.php:105
+msgid "Limit indexation to specific data types (white list)"
+msgstr ""
+
+#: src/Form/ConfigForm.php:119
+msgid "Skip indexation for specific data types (black list)"
+msgstr ""
+
+#: src/Form/ConfigForm.php:133
+msgid "Write access key for Arc2 (random)"
+msgstr ""
+
+#: src/Form/ConfigForm.php:146
+msgid "Max number of results per page"
+msgstr ""
+
+#: src/Form/ConfigForm.php:156
+msgid "Index in sparql engine"
+msgstr ""
+
+#: src/Form/ConfigForm.php:158
+msgid "Triplestore (turtle file, used to index a third party sparql server)"
+msgstr ""
+
+#: src/Form/ConfigForm.php:159
+msgid "Semsol Arc2 (omeka database, used for the internal sparql triplestore)"
+msgstr ""
+
+#: src/Form/ConfigForm.php:170
+msgid "Index"
+msgstr ""
+
+#: src/Form/ConfigForm.php:174
+msgid "Process"
+msgstr ""
+
+#: src/Form/SparqlFieldset.php:18
+msgid "Block title"
+msgstr ""
+
+#: src/Form/SparqlFieldset.php:28
+msgid "Interface"
+msgstr ""
+
+#: src/Form/SparqlFieldset.php:30
+msgid "Simple"
+msgstr ""
+
+#: src/Form/SparqlFieldset.php:31
+msgid "Yasgui"
+msgstr ""
+
+#: src/Form/SparqlFieldset.php:45
+msgid "Template to display"
+msgstr ""
+
+#: src/Form/SparqlFieldset.php:46
+msgid ""
+"Templates are in folder \"common/block-layout\" of the theme and should "
+"start with \"sparql\"."
+msgstr ""
+
+#: src/Form/SparqlForm.php:36
+msgid "Table"
+msgstr ""
