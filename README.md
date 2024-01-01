@@ -5,24 +5,33 @@ Sparql (module for Omeka S)
 > are available on [GitLab], which seems to respect users and privacy better
 > than the previous repository.__
 
-[Sparql] is a module for [Omeka S] that allows to query json-ld Omeka S database
-via the Sparql language. The query can be built via a text editor of via a
-clickodrome.
+[Sparql] is a module for [Omeka S] that create a triplestore and a sparql server
+that allows to query json-ld Omeka S database via the [sparql language]. The
+query can be built via a form in any page or via the endpoint, compliant with
+the [sparql protocol version 1.0] and partially version 1.1.
 
-The main interest of a sparql search agains api or sql search is that it is a
-much more global search: queries are not limited to the database, but to all the
-linked data. So this a powerful search tool useful when you have many relations
-and normalized data (dates, subjects, etc.), in particular via the module [Value Suggest]
-and values that uses common ontologies with right precise usage of each
-properties and classes. If you have custom vocabularies, publish it and take it
-stable to allow richer results.
+The main interest of a sparql search against api or sql search is that it is a
+much more global search: requests are not limited to the database, but to all
+the linked data. So this a powerful search tool useful when you have many
+relations and normalized data (dates, people, subjects, locations, etc.), in
+particular via the module [Value Suggest] and values that uses common ontologies
+with right precise usage of each properties and classes. If you have custom
+vocabularies, publish them and take them stable to allow richer results.
 
-So it is recommended to activate this module or to communicate on it only when
-the database is well built.
+Furthermore, results may be a list of data, but sparql graphs too.
+
+**WARNING**: This is a work in progress and the [sparql protocol] is not fully
+implemented yet.
+
+For a big base or full support of the sparql specifications, in particular the
+[sparql protocol version 1.1], it is recommended to use an external sparql server,
+like [Fuseki] and to point it to the triplestore created by the module.
 
 
 Installation
 ------------
+
+### Module
 
 See general end user documentation for [installing a module].
 
@@ -40,40 +49,87 @@ directory.
 * From the source and for development
 
 If the module was installed from the source, rename the name of the folder of
-the module to `Sparql`, go to the root module, and run:
+the module to `Sparql`, go to the root of the module, and run:
 
 ```sh
 composer install --no-dev
 ```
 
+### Server allowing CORS (Cross-Origin Resource Sharing)
+
+To make the endpoint available from any client, it should be [CORS] compliant.
+
+On Apache 2.4, the module "headers" should be enabled:
+
+```sh
+a2enmod headers
+systemctl restart apache2
+```
+
+Then, you have to add the following rules, adapted to your needs, to the file
+`.htaccess` at the root of Omeka S or in the main config of the server:
+
+```
+# CORS access for some files.
+<IfModule mod_headers.c>
+    Header setIfEmpty Access-Control-Allow-Origin "*"
+    Header setIfEmpty Access-Control-Allow-Headers "origin, x-requested-with, content-type"
+    Header setIfEmpty Access-Control-Allow-Methods "GET, POST"
+</IfModule>
+```
+
+It is recommended to use the main config of the server, for example  with the
+directive `<Directory>`.
+
+To fix Amazon cors issues, see the [aws documentation].
+
 
 Usage
 -----
 
-Like other search engine, the module requires to index data in the server. This
-is done automatically each time a resource is saved, but it can be disabled and
-processed manually.
+### Indexation
 
-To query the search engine, simply send query to https://example.org/sparql or
-use the human interface at https://example.org/s/mysite/sparql.
+Like other search engine, the module requires to index data in the server. This
+is **not** done automatically each time a resource is saved, so the triplestore
+should be but updated manually for now in the config form.
+
+### Query
+
+There are two ways to query the search engine.
+
+To query the triplestore according to the standard [sparql protocol version 1.0],
+go to https://example.org/sparql. This endpoint is designed for servers.
+
+To query the triplestore with a human interface, create a page with the block
+"sparql" and go to it.
+
+If you use an external sparql server, just point it to the triplestore created
+by the module.
 
 
 TODO
 ----
 
+- [ ] Support of sparql protocol version 1.1.
+- [ ] Support of automatic pagination with the omeka paginator.
 - [ ] Human interface via https://sparnatural.eu/
-- [ ] Readme for [Apache Jena Fuseki].
-- [ ] Other sparql interface for fuseki when direct access (https://triply.cc/docs/yasgui/…), in particular yasgui gallery, charts and timeline plugins.
+- [x] Yasgui interface.
+- [ ] Other sparql interfaces than yasgui.
+- [ ] Yasgui gallery, charts and timeline plugins (see https://yasgui.triply.cc).
+- [ ] Incllude sparql graph by default.
 - [ ] Exploration tools of Nicolas Lasolle, that are adapted to Omeka S.
 - [ ] Other visualization and exploration tools (see Nicolas Lasolle [abstract written for a congress]).
-- [ ] Query on private resources.
-- [ ] Create a TDB2 template adapted to Omeka.
-- [ ] Make a cron task (module EasyAdmin).
-- [ ] Integrate with module Advanced Search.
-- [ ] Add button for indexing in module Advanced Search.
 - [ ] Triple stores by site or via queries.
-- [ ] Integrate full text search with lucene (see https://jena.apache.org/documentation/query/text-query.html)
+- [ ] Manage multiple triplestores.
+- [ ] Query on private resources.
 - [ ] Use api credentials for sparql queries.
+- [ ] Create a TDB2 template adapted to Omeka.
+- [ ] Make a cron task (module [Easy Admin])?
+- [ ] Integrate with module [Advanced Search] for indexation.
+- [ ] Add button for indexing in module Advanced Search.
+- [ ] Integrate full text search with lucene (see https://jena.apache.org/documentation/query/text-query.html)
+- [ ] Readme for Apache Jena [Fuseki].
+- [ ] Support create and update of resources through sparql and api.
 
 
 Warning
@@ -122,6 +178,11 @@ conditions as regards security.
 The fact that you are presently reading this means that you have had knowledge
 of the CeCILL license and that you accept its terms.
 
+* Libraries
+
+- [semsol/arc2]: GPL-2.0-or-later or W3C.
+- [TriplyDB/yasgui]: MIT
+
 
 Copyright
 ---------
@@ -147,22 +208,31 @@ des Antilles et de la Guyane, currently managed via Greenstone.
 [Sparql]: https://gitlab.com/Daniel-KM/Omeka-S-module-Sparql
 [Omeka S]: https://omeka.org/s
 [Value Suggest]: https://omeka.org/s/modules/ValueSuggest
-[Apache Jena Fuseki]: https://jena.apache.org/documentation/fuseki2
-[Installing a module]: https://omeka.org/s/docs/user-manual/modules/
+[Fuseki]: https://jena.apache.org/documentation/fuseki2
+[sparql language]: https://www.w3.org/TR/2013/REC-sparql11-query-20130321
+[sparql protocol version 1.0]: http://www.w3.org/TR/2008/REC-rdf-sparql-protocol-20080115
+[sparql protocol version 1.1]: http://www.w3.org/TR/rdf-sparql-protocol
+[Installing a module]: https://omeka.org/s/docs/user-manual/modules
 [Sparql.zip]: https://github.com/Daniel-KM/Omeka-S-module-Sparql/releases
+[CORS]: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+[aws documentation]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
 [module issues]: https://gitlab.com/Daniel-KM/Omeka-S-module-Sparql/issues
 [Common]: https://gitlab.com/Daniel-KM/Omeka-S-module-Common
-[Omeka S database]: http://henripoincare.fr/
+[Easy Admin]: https://gitlab.com/Daniel-KM/Omeka-S-module-EasyAdmin
+[Advanced Search]: https://gitlab.com/Daniel-KM/Omeka-S-module-AdvancedSearch
+[Omeka S database]: http://henripoincare.fr
 [Nicolas Lasolle]: https://github.com/nlasolle
 [Thesis in computing]: https://hal.univ-lorraine.fr/tel-03845484
 [abstract written for a congress]: https://inserm.hal.science/LORIA-NLPKD/hal-03406713v1
-[Archives Henri Poincaré]: https://www.ahp-numerique.fr/
+[Archives Henri Poincaré]: https://www.ahp-numerique.fr
 [short video]: https://videos.ahp-numerique.fr/w/gjj2DJ9mZmVNKehwuDgWFk
 [Omeka S to Rdf]: https://github.com/nlasolle/omekas2rdf
 [CeCILL v2.1]: https://www.cecill.info/licences/Licence_CeCILL_V2.1-en.html
 [GNU/GPL]: https://www.gnu.org/licenses/gpl-3.0.html
 [FSF]: https://www.fsf.org
 [OSI]: http://opensource.org
+[semsol/arc2]: https://github.com/semsol/arc2
+[TriplyDB/yasgui]: https://github.com/TriplyDB/Yasgui
 [Manioc]: https://manioc.org
 [GitLab]: https://gitlab.com/Daniel-KM
 [Daniel-KM]: https://gitlab.com/Daniel-KM "Daniel Berthereau"
