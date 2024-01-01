@@ -79,8 +79,8 @@ return [
                 'xml',
             ],
             'sparql_indexes' => [
-                'turtle',
-                'arc2',
+                // 'turtle',
+                // 'arc2',
                 // 'fuseki',
             ],
             // TODO Manage api credentials for arc2.
