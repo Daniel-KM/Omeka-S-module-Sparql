@@ -88,6 +88,34 @@ class ConfigForm extends Form
                 ],
             ])
             ->add([
+                'name' => 'searchsparql_datatype_whitelist',
+                'type' => OmekaElement\DataTypeSelect::class,
+                'options' => [
+                    'label' => 'Limit indexation to specific data types (white list)', // @translate
+                    'empty_option' => '',
+                ],
+                'attributes' => [
+                    'id' => 'searchsparql_datatype_whitelist',
+                    'class' => 'chosen-select',
+                    'multiple' => true,
+                    'data-placeholder' => 'Select data types…', // @translate
+                ],
+            ])
+            ->add([
+                'name' => 'searchsparql_datatype_blacklist',
+                'type' => OmekaElement\DataTypeSelect::class,
+                'options' => [
+                    'label' => 'Skip indexation for specific data types (black list)', // @translate
+                    'empty_option' => '',
+                ],
+                'attributes' => [
+                    'id' => 'searchsparql_datatype_blacklist',
+                    'class' => 'chosen-select',
+                    'multiple' => true,
+                    'data-placeholder' => 'Select data types…', // @translate
+                ],
+            ])
+            ->add([
                 'name' => 'process_triplestore',
                 'type' => Element\Submit::class,
                 'options' => [
@@ -116,6 +144,14 @@ class ConfigForm extends Form
             ])
             ->add([
                 'name' => 'searchsparql_property_blacklist',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'searchsparql_datatype_whitelist',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'searchsparql_datatype_blacklist',
                 'required' => false,
             ])
         ;

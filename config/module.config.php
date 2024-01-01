@@ -31,6 +31,12 @@ return [
                 'bibo:content',
                 'extracttext:extracted_text',
             ],
+            'searchsparql_datatype_whitelist' => [
+            ],
+            'searchsparql_datatype_blacklist' => [
+                'html',
+                'xml',
+            ],
         ],
     ],
 ];

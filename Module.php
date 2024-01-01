@@ -75,6 +75,8 @@ class Module extends AbstractModule
             'fields_included' => $settings->get('searchsparql_fields_included', $configModule['searchsparql_fields_included']),
             'property_whitelist' => $settings->get('searchsparql_property_whitelist', $configModule['searchsparql_property_whitelist']),
             'property_blacklist' => $settings->get('searchsparql_property_blacklist', $configModule['searchsparql_property_blacklist']),
+            'datatype_whitelist' => $settings->get('searchsparql_datatype_whitelist', $configModule['searchsparql_datatype_whitelist']),
+            'datatype_blacklist' => $settings->get('searchsparql_datatype_blacklist', $configModule['searchsparql_datatype_blacklist']),
         ];
 
         // Use synchronous dispatcher for quick testing purpose.

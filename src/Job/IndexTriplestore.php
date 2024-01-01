@@ -48,6 +48,16 @@ class IndexTriplestore extends AbstractJob
     /**
      * @var string
      */
+    protected $dataTypeWhiteList;
+
+    /**
+     * @var string
+     */
+    protected $dataTypeBlackList;
+
+    /**
+     * @var string
+     */
     protected $filepath;
 
     /**
@@ -99,12 +109,12 @@ class IndexTriplestore extends AbstractJob
     /**
      * @var array
      */
-    protected $propertyBlacklist;
+    protected $propertyBlackList;
 
     /**
      * @var array
      */
-    protected $propertyWhitelist;
+    protected $propertyWhiteList;
 
     /**
      * @var string
@@ -168,11 +178,11 @@ class IndexTriplestore extends AbstractJob
 
         $this->properties = $easyMeta->propertyIds();
 
-        $this->propertyWhitelist = $this->getArg('property_whitelist', $settings->get('searchsparql_property_whitelist', $configModule['searchsparql_property_whitelist']));
-        $this->propertyWhitelist = array_intersect_key(array_combine($this->propertyWhitelist, $this->propertyWhitelist), $this->properties);
+        $this->propertyWhiteList = $this->getArg('property_whitelist', $settings->get('searchsparql_property_whitelist', $configModule['searchsparql_property_whitelist']));
+        $this->propertyWhiteList = array_intersect_key(array_combine($this->propertyWhiteList, $this->propertyWhiteList), $this->properties);
 
-        $this->propertyBlacklist = $this->getArg('property_blacklist', $settings->get('searchsparql_property_blacklist', $configModule['searchsparql_property_blacklist']));
-        $this->propertyBlacklist = array_intersect_key(array_combine($this->propertyBlacklist, $this->propertyBlacklist), $this->properties);
+        $this->propertyBlackList = $this->getArg('property_blacklist', $settings->get('searchsparql_property_blacklist', $configModule['searchsparql_property_blacklist']));
+        $this->propertyBlackList = array_intersect_key(array_combine($this->propertyBlackList, $this->propertyBlackList), $this->properties);
 
         $this->initPrefixes();
 
@@ -185,6 +195,11 @@ class IndexTriplestore extends AbstractJob
         $this->propertyMeta += array_flip($fieldsIncluded);
 
         $this->initPrefixesShort();
+
+        $this->dataTypeWhiteList = $this->getArg('datatype_whitelist', $settings->get('searchsparql_datatype_whitelist', $configModule['searchsparql_datatype_whitelist']));
+        $this->dataTypeWhiteList = array_combine($this->dataTypeWhiteList, $this->dataTypeWhiteList);
+        $this->dataTypeBlackList = $this->getArg('datatype_blacklist', $settings->get('searchsparql_datatype_blacklist', $configModule['searchsparql_datatype_blacklist']));
+        $this->dataTypeBlackList = array_combine($this->dataTypeBlackList, $this->dataTypeBlackList);
 
         // Prepare output path.
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
@@ -320,12 +335,25 @@ class IndexTriplestore extends AbstractJob
         }
 
         // Don't store specific metadata.
-        $json = $this->propertyWhitelist
-            ? array_intersect_key($json, $this->propertyMeta + $this->propertyWhitelist)
+        $json = $this->propertyWhiteList
+            ? array_intersect_key($json, $this->propertyMeta + $this->propertyWhiteList)
             : array_intersect_key($json, $this->propertyMeta + $this->properties);
 
-        if ($this->propertyBlacklist) {
-            $json = array_diff_key($json, $this->propertyBlacklist);
+        if ($this->propertyBlackList) {
+            $json = array_diff_key($json, $this->propertyBlackList);
+        }
+
+        if ($this->dataTypeWhiteList || $this->dataTypeBlackList) {
+            foreach (array_keys(array_intersect_key($this->properties, $json)) as $property) {
+                foreach ($json[$property] as $key => $value) {
+                    if ($this->dataTypeWhiteList && !isset($this->dataTypeWhiteList[$value['type']])) {
+                        unset($json[$property][$key]);
+                    }
+                    if ($this->dataTypeBlackList && isset($this->dataTypeBlackList[$value['type']])) {
+                        unset($json[$property][$key]);
+                    }
+                }
+            }
         }
 
         $id = $resource->apiUrl();
