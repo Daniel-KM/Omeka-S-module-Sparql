@@ -12,6 +12,21 @@ class ConfigForm extends Form
     {
         $this
             ->add([
+                'name' => 'searchsparql_resource_types',
+                'type' => Element\MultiCheckbox::class,
+                'options' => [
+                    'label' => 'Limit indexation to specific resources', // @translate
+                    'value_options' => [
+                        'item sets' => 'Item sets', // @translate
+                        'items' => 'Items', // @translate
+                        'media' => 'Medias', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'searchsparql_resource_types',
+                ],
+            ])
+            ->add([
                 'name' => 'searchsparql_property_whitelist',
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [
@@ -51,6 +66,22 @@ class ConfigForm extends Form
                     'id' => 'process_triplestore',
                     'value' => 'Index triplestore', // @translate
                 ],
+            ])
+        ;
+
+        $inputFilter = $this->getInputFilter();
+        $inputFilter
+            ->add([
+                'name' => 'searchsparql_resource_types',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'searchsparql_property_whitelist',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'searchsparql_property_blacklist',
+                'required' => false,
             ])
         ;
     }

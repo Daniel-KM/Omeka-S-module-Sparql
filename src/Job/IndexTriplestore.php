@@ -88,6 +88,11 @@ class IndexTriplestore extends AbstractJob
     protected $propertyWhitelist;
 
     /**
+     * @var array
+     */
+    protected $resourceTypes;
+
+    /**
      * @var int
      */
     protected $totalResults = 0;
@@ -125,7 +130,10 @@ class IndexTriplestore extends AbstractJob
 
         $this->datasetName = 'triplestore';
 
-        // Init properties.
+        // Init options.
+
+        $this->resourceTypes = $this->getArg('resource_types', $settings->get('searchsparql_resource_types', $configModule['searchsparql_resource_types']));
+
         $this->properties = $easyMeta->propertyIds();
 
         $this->propertyWhitelist = $this->getArg('property_whitelist', $settings->get('searchsparql_property_whitelist', $configModule['searchsparql_property_whitelist']));
@@ -139,10 +147,17 @@ class IndexTriplestore extends AbstractJob
         $this->filepath = $basePath . '/triplestore/' . $this->datasetName . '.ttl';
         file_put_contents($this->filepath, '');
 
+        if (in_array('media', $this->resourceTypes) && !in_array('items', $this->resourceTypes)) {
+            $this->logger->warn(new Message(
+                'Sparql dataset "%1$s": Medias cannot be indexed without indexing items.', // @translate
+                $this->datasetName
+            ));
+        }
+
         $timeStart = microtime(true);
 
         $this->logger->notice(new Message(
-            'Sparql dataset "%1$s" : start of indexing', // @translate
+            'Sparql dataset "%1$s": start of indexing', // @translate
             $this->datasetName
         ));
 
@@ -189,61 +204,76 @@ class IndexTriplestore extends AbstractJob
 
         // Step 2: adding item sets.
 
-        $response = $this->api->search('item_sets', [], ['returnScalar' => 'id']);
-        $total = $response->getTotalResults();
+        if (in_array('item_sets', $this->resourceTypes)) {
+            $response = $this->api->search('item_sets', [], ['returnScalar' => 'id']);
+            $total = $response->getTotalResults();
 
-        $this->logger->info(new Message(
-            'Sparql dataset "%1$s" : indexing %2$d item sets.', // @translate
-            $this->datasetName, $total
-        ));
+            $this->logger->info(new Message(
+                'Sparql dataset "%1$s": indexing %2$d item sets.', // @translate
+                $this->datasetName, $total
+            ));
 
-        $i = 0;
-        foreach ($response->getContent() as $id) {
-            /** @var \Omeka\Api\Representation\ItemSetRepresentation $itemSet */
-            $itemSet = $this->api->read('item_sets', ['id' => $id])->getContent();
-            $this->storeResource($itemSet);
-            ++$this->totalResults;
-            if (++$i % 100 === 0) {
-                $this->logger->info(new Message(
-                    'Sparql dataset "%1$s" : indexed %2$d/%3$d item sets.', // @translate
-                    $this->datasetName, $i, $total
-                ));
-                $this->entityManager->clear();
+            $i = 0;
+            foreach ($response->getContent() as $id) {
+                /** @var \Omeka\Api\Representation\ItemSetRepresentation $itemSet */
+                $itemSet = $this->api->read('item_sets', ['id' => $id])->getContent();
+                $this->storeResource($itemSet);
+                ++$this->totalResults;
+                if (++$i % 100 === 0) {
+                    $this->logger->info(new Message(
+                        'Sparql dataset "%1$s": indexed %2$d/%3$d item sets.', // @translate
+                        $this->datasetName, $i, $total
+                    ));
+                    $this->entityManager->clear();
+                }
             }
-        }
 
-        $this->entityManager->clear();
+            $this->entityManager->clear();
+        }
 
         // Step 3: adding items and attached media.
 
-        $response = $this->api->search('items', [], ['returnScalar' => 'id']);
-        $total = $response->getTotalResults();
-        $totalMedias = $this->api->search('media')->getTotalResults();
+        if (in_array('items', $this->resourceTypes)) {
+            $indexMedia = in_array('media', $this->resourceTypes);
 
-        $this->logger->info(new Message(
-            'Sparql dataset "%1$s" : indexing %2$d items and %3$d medias.', // @translate
-            $this->datasetName, $total, $totalMedias
-        ));
+            $response = $this->api->search('items', [], ['returnScalar' => 'id']);
+            $total = $response->getTotalResults();
 
-        $i = 0;
-        foreach ($response->getContent() as $id) {
-            /** @var \Omeka\Api\Representation\ItemRepresentation $item */
-            $item = $this->api->read('items', ['id' => $id])->getContent();
-            $this->storeResource($item);
-            foreach ($item->media() as $media)  {
-                $this->storeResource($media);
-                ++$this->totalResults;
-            }
-            ++$this->totalResults;
-            if (++$i % 100 === 0) {
+            if ($indexMedia) {
+                $totalMedias = $this->api->search('media')->getTotalResults();
                 $this->logger->info(new Message(
-                    'Sparql dataset "%1$s" : indexed %2$d/%3$d items.', // @translate
-                    $this->datasetName, $i, $total
+                    'Sparql dataset "%1$s": indexing %2$d items and %3$d medias.', // @translate
+                    $this->datasetName, $total, $totalMedias
                 ));
-                $this->entityManager->clear();
+            } else {
+                $this->logger->info(new Message(
+                    'Sparql dataset "%1$s": indexing %2$d items.', // @translate
+                    $this->datasetName, $total
+                ));
             }
+
+            $i = 0;
+            foreach ($response->getContent() as $id) {
+                /** @var \Omeka\Api\Representation\ItemRepresentation $item */
+                $item = $this->api->read('items', ['id' => $id])->getContent();
+                $this->storeResource($item);
+                if ($indexMedia) {
+                    foreach ($item->media() as $media)  {
+                        $this->storeResource($media);
+                        ++$this->totalResults;
+                    }
+                }
+                ++$this->totalResults;
+                if (++$i % 100 === 0) {
+                    $this->logger->info(new Message(
+                        'Sparql dataset "%1$s": indexed %2$d/%3$d items.', // @translate
+                        $this->datasetName, $i, $total
+                    ));
+                    $this->entityManager->clear();
+                }
+            }
+            $this->entityManager->clear();
         }
-        $this->entityManager->clear();
 
         return $this;
     }

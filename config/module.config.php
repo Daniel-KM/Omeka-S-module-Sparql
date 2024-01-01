@@ -10,6 +10,11 @@ return [
     ],
     'searchsparql' => [
         'config' => [
+            'searchsparql_resource_types' => [
+                'item_sets',
+                'items',
+                // 'media',
+            ],
             'searchsparql_property_whitelist' => [
             ],
             'searchsparql_property_blacklist' => [
