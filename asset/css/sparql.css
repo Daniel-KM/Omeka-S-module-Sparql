@@ -1,7 +1,5 @@
 @media screen {
-    body.sparql.minimal #page-actions button#submit {
-        background-color: #fff;
-    }
+
     #form-sparql textarea {
         height: auto;
         width: 100%;
@@ -11,6 +9,11 @@
         display: inline-block;
         width: auto;
     }
+
+    body.sparql.minimal #page-actions button#submit {
+        background-color: #fff;
+    }
+
     .namespaces label {
         display: inline-block;
     }
@@ -36,14 +39,24 @@
     body.sparql.minimal .namespaces dd {
         padding-left: 4px;
     }
+
     .result table {
         width: 100%;
     }
-    .result-html span.type,
+    .result-html a.data-type,
+    .result-html span.data-type,
     .result-html span.language {
         user-select: none;
     }
+    .result a.data-type,
+    .result span.data-type,
+    .result span.language {
+        vertical-align: super;
+        font-size: 80%;
+    }
+
     #yasgui .yasgui .autocompleteWrapper {
         display: none !important;
     }
+
 }

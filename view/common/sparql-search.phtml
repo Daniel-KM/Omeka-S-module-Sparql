@@ -13,6 +13,8 @@
  * And passed options from the helper.
  */
 
+use \EasyRdf\RdfNamespace;
+
 // The form uses the format of Omeka / item / search.
 
 $plugins = $this->getHelperPluginManager();
@@ -44,9 +46,6 @@ SPARQL;
         ->appendFile($assetUrl('vendor/yasgui/yasgui.min.js', 'Sparql'), 'text/javascript', ['defer' => 'defer'])
         ->appendFile($assetUrl('js/sparql.js', 'Sparql'), 'text/javascript', ['defer' => 'defer']);
 }
-
-$matches = [];
-$pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~';
 ?>
 
 <?php if ($interface === 'yasgui'): ?>
@@ -145,23 +144,19 @@ $pattern = '~^(' . implode('|', array_map('preg_quote', $namespaces)) . ')(.+)$~
                         $lang = $row[$key . ' lang'] ?? null;
                         ?>
                         <td>
+                            <?php if ($type === 'uri'): ?>
+                            <a class="value-content" href="<?= $escapeAttr($value) ?>"><?= $escape(RdfNamespace::shorten($value) ?? $value) ?></a>
+                            <?php else: ?>
+                            <span class="value-content"<?= $type ? ' data-type="' . $escapeAttr($type) . '"' : '' ?><?= $lang ? ' lang="' . $escapeAttr($lang) . '"' : '' ?>><?= $escape($value) ?></span>
+                            <?php endif; ?>
                             <?php if ($type && $dataType): ?>
-                            <a class="data-type" href="<?= $escapeAttr($dataType) ?>"><?= $escape($type) ?></a>
+                            <?php $dataTypeReadable = $dataType ? RdfNamespace::shorten($dataType) ?? $dataType : null; ?>
+                            <a class="data-type" href="<?= $escapeAttr($dataType) ?>"><?= $escape($dataTypeReadable) ?></a>
                             <?php elseif ($type): ?>
                             <span class="data-type"><?= $escape($type) ?></span>
                             <?php endif; ?>
                             <?php if ($lang): ?>
                             <span class="language"><?= $escape($lang) ?></span>
-                            <?php endif; ?>
-                            <?php if ($type === 'uri' && preg_match($pattern, $value, $matches)): ?>
-                            <?php $iri = $matches[1]; ?>
-                            <?php $prop = $matches[2]; ?>
-                            <?php $prefix = array_search($iri, $namespaces); ?>
-                            <a class="value-content" href="<?= $escapeAttr($value) ?>"><?= $escape("$prefix:$prop") ?></a>
-                            <?php elseif ($type === 'uri'): ?>
-                            <a class="value-content" href="<?= $escapeAttr($value) ?>"><?= $escape($value) ?></a>
-                            <?php else: ?>
-                            <span class="value-content"<?= $type ? ' data-type="' . $escapeAttr($type) . '"' : '' ?> <?= $lang ? ' lang="' . $escapeAttr($lang) . '"' : '' ?>"><?= $escape($value) ?></span>
                             <?php endif; ?>
                         </td>
                     <?php endforeach; ?>
