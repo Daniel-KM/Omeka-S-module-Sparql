@@ -16,12 +16,12 @@ the linked data. So this a powerful search tool useful when you have many
 relations and normalized data (dates, people, subjects, locations, etc.), in
 particular via the module [Value Suggest] and values that uses common ontologies
 with right precise usage of each properties and classes. If you have custom
-vocabularies, publish them and take them stable to allow richer results.
+ontologies, publish them and take them stable to allow richer results.
 
 Furthermore, results may be a list of data, but sparql graphs too.
 
-**WARNING**: This is a work in progress and the [sparql protocol] is not fully
-implemented yet.
+**WARNING**: This is a work in progress and the [sparql protocol version 1.1] is
+not fully implemented yet.
 
 For a big base or full support of the sparql specifications, in particular the
 [sparql protocol version 1.1], it is recommended to use an external sparql
@@ -31,7 +31,7 @@ server, like [Fuseki] and to point it to the triplestore created by the module.
 Installation
 ------------
 
-### Module
+### Module
 
 See general end user documentation for [installing a module].
 
@@ -89,9 +89,13 @@ Usage
 
 ### Indexation
 
-Like other search engine, the module requires to index data in the server. This
-is **not** done automatically each time a resource is saved, so the triplestore
-should be but updated manually for now in the config form.
+Like any other search engines, the module requires to index data in the server.
+This is **not** done automatically each time a resource is saved, so the
+triplestore should be but updated manually for now in the config form.
+
+You can index the server locally in the database through the integrated library
+[semsol/arc2], or you can create a triplestore file, then point to it with an
+external sparql server like Fuseki.
 
 ### Query
 
@@ -159,12 +163,13 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
 
   Full details of the files for various run modes are available in /opt/apache-jena/fuseki/readme
   so it is recommended to read it. Two main variables are used:
+
   * FUSEKI_HOME is the dir where fuseki is installed = /opt/fuseki/
   * FUSEKI_BASE is the dir "/run" inside the current directory. When running
-  fuseki manually from command line, it is recommended to create a dir like ~/fuseki
-  (`mkdir ~/fuseki`) and to go inside it (`cd ~/fuseki`) before running fuseki.
-  If you use the default config of the systemd service (see below), the base is
-  /etc/fuseki.
+    fuseki manually from command line, it is recommended to create a dir like ~/fuseki
+    (`mkdir ~/fuseki`) and to go inside it (`cd ~/fuseki`) before running fuseki.
+    If you use the default config of the systemd service (see below), the base is
+    /etc/fuseki.
 
 3. For quick test on command line
 
@@ -194,143 +199,142 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   so the triplestore can be managed dynamically via the module, while secure for
   external access.
 
-  1. Download and install Fuseki 2
+1. Download and install Fuseki 2
+  See points 1 and 2 from the quick start above.
 
-    See points 1 and 2 from the quick start above.
+2. Prepare the configuration of Omeka S as source for Fuseki
 
-  2. Prepare the configuration of Omeka S as source for Fuseki
+  Fuseki uses two config files managed as a rdf graph, generally formatted as
+  turtle, but any serialization can be used. They allows to describe the
+  server and services (read, querying, update, etc.) over the Omeka S dataset.
+  Here, `$FUSEKI_BASE` is `/etc/fuseki` by default:
+  - `$FUSEKI_BASE/config.ttl`: server wide configuration
+  - `$FUSEKI_BASE/configuration/{tspathname.ttl}`: dataset specific configuration
 
-    Fuseki uses two config files managed as a rdf graph, generally formatted as
-    turtle, but any serialization can be used. They allows to describe the
-    server and services (read, querying, update, etc.) over the Omeka S dataset.
-    Here, `$FUSEKI_BASE` is `/etc/fuseki` by default:
-    - `$FUSEKI_BASE/config.ttl`: server wide configuration
-    - `$FUSEKI_BASE/configuration/{tspathname.ttl}`: dataset specific configuration
+  // TODO Include default config of Fuseki.
+  The default omeka s file is included in the module [data/fusuki/config.ttl],
+  so you just have to copy it and to change the path to the omeka files/triplestore
+  inside it. It allows to publish one dataset as read-only. See the [config documentation]
+  for more details.
 
-    // TODO Include default config of Fuseki.
-    The default omeka s file is included in the module [data/fusuki/config.ttl],
-    so you just have to copy it and to change the path to the omeka files/triplestore
-    inside it. It allows to publish one dataset as read-only. See the [config documentation]
-    for more details.
+  ```sh
+  # Adapt to your path. The name is renamed too at your choice.
+  sudo cp /var/www/html/omekas/modules/Sparql/config/fuseki.ttl /etc/fusuki/configuration/omekas.ttl
+  ```
 
-    ```sh
-    # Adapt to your path. The name is renamed too at your choice.
-    sudo cp /var/www/html/omekas/modules/Sparql/config/fuseki.ttl /etc/fusuki/configuration/omekas.ttl
-    ```
+3. Prepare the installation of Fuseki
 
-  3. Prepare the installation of Fuseki
+  ```sh
+  sudo touch /etc/default/fuseki
+  sudo echo 'FUSEKI_HOME=/opt/fuseki/' | sudo tee -a /etc/default/fuseki
+  ```
 
-    ```sh
-    sudo touch /etc/default/fuseki
-    sudo echo 'FUSEKI_HOME=/opt/fuseki/' | sudo tee -a /etc/default/fuseki
-    ```
+4. Install fuseki as a service
 
-  4. Install fuseki as a service
+  You can install the service as a simple old school init.d script (managed by
+  systemd anyway) or directly as a systemd service (recommended and more
+  secure).
 
-    You can install the service as a simple old school init.d script (managed by
-    systemd anyway) or directly as a systemd service (recommended and more
-    secure).
-
-    1. Service for init.d (deprecated)
-
-      ```sh
-      sudo cp /opt/apache-jena-fuseki/fuseki /etc/init.d/
-      sudo chmod +x /etc/init.d/fuseki
-      ```
-
-    2. Service for systemd
-
-      ```sh
-      sudo cp /opt/fuseki/fuseki.service /etc/systemd/system/
-      sudo useradd -r -s /bin/false fuseki
-      # Take care that the user fuseki should access /etc/fuseki.
-      sudo mkdir /etc/fuseki
-      sudo chown fuseki:fuseki /etc/fuseki
-      # Take care that the user fuseki should access the omeka s triple store.
-      # Depending on your web server configuration, you can make readable the
-      # Omeka S directory files/triplestore, or add the user to the server group,
-      # or store the triplestore somewhere else. A read only access is enough.
-      # You should take care of parents too.
-      sudo chmod -R o+rX /var/www/html/omekas/files/triplestore/
-      ```
-
-  5. Enable the service
+  1. Service for init.d (deprecated)
 
     ```sh
-    # Auto run on boot.
-    sudo systemctl enable fuseki
-    sudo systemctl start fuseki
-    # Check working.
-    sudo systemctl status fuseki
+    sudo cp /opt/apache-jena-fuseki/fuseki /etc/init.d/
+    sudo chmod +x /etc/init.d/fuseki
     ```
 
-  6. Use Apache as a reverse proxy for Fuseki
-
-    To avoid to open the Fuseki service directly to the web and to avoid
-    complexity with certificate management, it is recommended to use Apache as a
-    reverse proxy.
-
-    To configure a reverse proxy for Fuseki with Apache, you can either redirect
-    a path on your domain (https://example.org/sparql) or create a subdomain (https://sparql.example.org).
-    In the first case, you edit an existing virtual host file and in the second
-    one you create a new one. Here, the example is a path inside the main domain.
-    It is recommended to use a generic path like /sparql instead /fuseki,
-    because you will not break the url if you change of sparql server in the
-    future.
-
-    So edit the file "/etc/apache2/sites-available/example.org.conf":
-
-    ```apache
-    <VirtualHost *:443>
-        ServerName example.org
-        …
-        ProxyPreserveHost On
-        ProxyRequests Off
-        <Proxy *>
-            Require all granted
-        </Proxy>
-        RewriteEngine on
-        RewriteRule ^/sparql$ /sparql/ [R]
-        ProxyPass /sparql/  http://localhost:3030/
-        ProxyPassReverse /sparql/  http://localhost:3030/
-    </VirtualHost>
-    ```
-
-    Here, Fuseki should be available through standard https port 443 without ssl
-    on the server. See another similar configuration for [tomcat here].
-
-    Then enable this new config:
+  2. Service for systemd
 
     ```sh
-    sudo a2ensite mydomain
-    sudo systemctl restart apache2
+    sudo cp /opt/fuseki/fuseki.service /etc/systemd/system/
+    sudo useradd -r -s /bin/false fuseki
+    # Take care that the user fuseki should access /etc/fuseki.
+    sudo mkdir /etc/fuseki
+    sudo chown fuseki:fuseki /etc/fuseki
+    # Take care that the user fuseki should access the omeka s triple store.
+    # Depending on your web server configuration, you can make readable the
+    # Omeka S directory files/triplestore, or add the user to the server group,
+    # or store the triplestore somewhere else. A read only access is enough.
+    # You should take care of parents too.
+    sudo chmod -R o+rX /var/www/html/omekas/files/triplestore/
     ```
 
-  7. Security
+5. Enable the service
 
-    Fuseki webapp provides security by using [Apache Shiro]. It is integrated in
-    Fuseki, so you just have to edit the file `$FUSEKI_BASE/run/shiro.ini`.
-    The default username/password is `admin`/`pw`, but it must be changed in the
-    section `[users]`. You can create other users and roles if needed, for
-    example when there are multiple triple stores for sites.
+  ```sh
+  # Auto run on boot.
+  sudo systemctl enable fuseki
+  sudo systemctl start fuseki
+  # Check working.
+  sudo systemctl status fuseki
+  ```
 
-    In the config shiro.ini file, you can limit access to some urls. The urls
-    starting with `/$/` are admin functions.
+6. Use Apache as a reverse proxy for Fuseki
 
-    For fine data access control, see [Fuseki documentation]. Of course, it is
-    useless if you publish to protect data if only public data are published as
-    read-only, that is the default.
+  To avoid to open the Fuseki service directly to the web and to avoid
+  complexity with certificate management, it is recommended to use Apache as a
+  reverse proxy.
 
-    For more infos, check the documentation about [Fuseki security].
+  To configure a reverse proxy for Fuseki with Apache, you can either redirect
+  a path on your domain (https://example.org/sparql) or create a subdomain (https://sparql.example.org).
+  In the first case, you edit an existing virtual host file and in the second
+  one you create a new one. Here, the example is a path inside the main domain.
+  It is recommended to use a generic path like /sparql instead /fuseki,
+  because you will not break the url if you change of sparql server in the
+  future.
 
-  8. Reload/restart
+  So edit the file "/etc/apache2/sites-available/example.org.conf":
 
-    After modifying config or security settings, you need to restart the service.
+  ```apache
+  <VirtualHost *:443>
+      ServerName example.org
+      …
+      ProxyPreserveHost On
+      ProxyRequests Off
+      <Proxy *>
+          Require all granted
+      </Proxy>
+      RewriteEngine on
+      RewriteRule ^/sparql$ /sparql/ [R]
+      ProxyPass /sparql/  http://localhost:3030/
+      ProxyPassReverse /sparql/  http://localhost:3030/
+  </VirtualHost>
+  ```
 
-    ```sh
-    # Auto run on boot.
-    sudo systemctl restart fuseki
-    ```
+  Here, Fuseki should be available through standard https port 443 without ssl
+  on the server. See another similar configuration for [tomcat here].
+
+  Then enable this new config:
+
+  ```sh
+  sudo a2ensite mydomain
+  sudo systemctl restart apache2
+  ```
+
+7. Security
+
+  Fuseki webapp provides security by using [Apache Shiro]. It is integrated in
+  Fuseki, so you just have to edit the file `$FUSEKI_BASE/run/shiro.ini`.
+  The default username/password is `admin`/`pw`, but it must be changed in the
+  section `[users]`. You can create other users and roles if needed, for
+  example when there are multiple triple stores for sites.
+
+  In the config shiro.ini file, you can limit access to some urls. The urls
+  starting with `/$/` are admin functions.
+
+  For fine data access control, see [Fuseki documentation]. Of course, it is
+  useless if you publish to protect data if only public data are published as
+  read-only, that is the default.
+
+  For more infos, check the documentation about [Fuseki security].
+
+8. Reload/restart
+
+  After modifying config or security settings, you need to restart the service.
+
+  ```sh
+  # Auto run on boot.
+  sudo systemctl restart fuseki
+  ```
 
 TODO
 ----
@@ -341,19 +345,19 @@ TODO
 - [x] Yasgui interface.
 - [ ] Other sparql interfaces than yasgui.
 - [ ] Yasgui gallery, charts and timeline plugins (see https://yasgui.triply.cc).
-- [ ] Incllude sparql graph by default.
+- [ ] Include sparql graph by default.
 - [ ] Exploration tools of Nicolas Lasolle, that are adapted to Omeka S.
 - [ ] Other visualization and exploration tools (see Nicolas Lasolle [abstract written for a congress]).
 - [ ] Triple stores by site or via queries.
 - [ ] Manage multiple triplestores.
 - [ ] Query on private resources.
 - [ ] Use api credentials for sparql queries.
-- [ ] Create a TDB2 template adapted to Omeka.
 - [ ] Make a cron task (module [Easy Admin])?
 - [ ] Integrate with module [Advanced Search] for indexation.
 - [ ] Add button for indexing in module Advanced Search.
 - [ ] Integrate full text search with lucene (see https://jena.apache.org/documentation/query/text-query.html)
 - [x] Readme for [Apache Jena Fuseki].
+- [ ] Create a Fuseki TDB2 template adapted to Omeka.
 - [ ] Include default config for Fuseki adapted to Omeka S.
 - [ ] Support create and update of resources through sparql and api.
 
@@ -395,7 +399,7 @@ In this respect, the user’s attention is drawn to the risks associated with
 loading, using, modifying and/or developing or reproducing the software by the
 user in light of its specific status of free software, that may mean that it is
 complicated to manipulate, and that also therefore means that it is reserved for
-developers and experienced prof[Apache Shiro]essionals having in-depth computer knowledge.
+developers and experienced professionals having in-depth computer knowledge.
 Users are therefore encouraged to load and test the software’s suitability as
 regards their requirements in conditions enabling the security of their systems
 and/or data to be ensured and, more generally, to use and operate it in the same
@@ -406,8 +410,8 @@ of the CeCILL license and that you accept its terms.
 
 * Libraries
 
-- [semsol/arc2]: GPL-2.0-or-later or W3C.
-- [TriplyDB/yasgui]: MIT
+  - [semsol/arc2]: GPL-2.0-or-later or W3C
+  - [TriplyDB/yasgui]: MIT
 
 
 Copyright
