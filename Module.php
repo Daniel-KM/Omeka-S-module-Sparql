@@ -22,9 +22,9 @@ use Omeka\Module\Exception\ModuleCannotInstallException;
  */
 class Module extends AbstractModule
 {
-    const NAMESPACE = __NAMESPACE__;
-
     use TraitModule;
+
+    const NAMESPACE = __NAMESPACE__;
 
     public function init(ModuleManager $moduleManager): void
     {
@@ -184,7 +184,7 @@ class Module extends AbstractModule
                         ? $urlPlugin->fromRoute('admin/log', [], ['query' => ['job_id' => $job->getId()]])
                         : $urlPlugin->fromRoute('admin/id', ['controller' => 'job', 'id' => $job->getId(), 'action' => 'log'])
                     )
-                )
+                ),
             ]
         );
         $message->setEscapeHtml(false);

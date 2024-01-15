@@ -2,7 +2,6 @@
 
 namespace Sparql\View\Helper;
 
-use Laminas\View\Helper\AbstractHelper;
 use ARC2;
 use ARC2_Store;
 use ARC2_StoreEndpoint;
@@ -11,6 +10,7 @@ use EasyRdf\RdfNamespace;
 use Exception;
 use Laminas\Form\FormElementManager;
 use Laminas\Mvc\Controller\Plugin\Params;
+use Laminas\View\Helper\AbstractHelper;
 use Omeka\Mvc\Controller\Plugin\CurrentSite;
 use Omeka\Mvc\Controller\Plugin\Messenger;
 use Omeka\Settings\Settings;
@@ -228,7 +228,7 @@ class SparqlSearch extends AbstractHelper
                 $query = $data['query'] ?? null;
                 $query = is_string($query) && trim($query) !== ''
                     ? trim($query)
-                    :null;
+                    : null;
                 $format = ($data['format'] ?? null) === 'text' ? 'text' : 'html';
                 if ($query) {
                     // TODO Check prepending prefixes: arc2 should work without them.
