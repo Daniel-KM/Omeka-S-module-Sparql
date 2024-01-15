@@ -402,7 +402,7 @@ class IndexTriplestore extends AbstractJob
             'xsd' => 'http://www.w3.org/2001/XMLSchema#',
         ];
 
-        $sql = <<<SQL
+        $sqlProperties = <<<SQL
 SELECT vocabulary.prefix, vocabulary.namespace_uri
 FROM vocabulary
 JOIN property ON property.vocabulary_id = vocabulary.id
@@ -413,18 +413,31 @@ ORDER BY vocabulary.prefix ASC
 ;
 SQL;
 
+        $sqlClasses = <<<SQL
+SELECT vocabulary.prefix, vocabulary.namespace_uri
+FROM vocabulary
+JOIN resource_class ON resource_class.vocabulary_id = vocabulary.id
+JOIN resource ON resource.resource_class_id = resource_class.id
+WHERE resource.id IN (:ids)
+GROUP BY vocabulary.prefix
+ORDER BY vocabulary.prefix ASC
+;
+SQL;
+
         if (in_array('item_sets', $this->resourceTypes)) {
             $ids = $this->api->search('item_sets', [], ['returnScalar' => 'id'])->getContent();
-            $prefixIris += $this->connection->executeQuery($sql, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
+            $prefixIris += $this->connection->executeQuery($sqlProperties, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
+            $prefixIris += $this->connection->executeQuery($sqlClasses, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
         }
 
         if (in_array('items', $this->resourceTypes)) {
             $ids = $this->api->search('items', $this->resourceQuery, ['returnScalar' => 'id'])->getContent();
-            $prefixIris += $this->connection->executeQuery($sql, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
+            $prefixIris += $this->connection->executeQuery($sqlProperties, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
+            $prefixIris += $this->connection->executeQuery($sqlClasses, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
 
             $indexMedia = in_array('media', $this->resourceTypes);
             if ($indexMedia) {
-                $sql = <<<SQL
+                $sqlProperties = <<<SQL
 SELECT vocabulary.prefix, vocabulary.namespace_uri
 FROM vocabulary
 JOIN property ON property.vocabulary_id = vocabulary.id
@@ -435,7 +448,19 @@ GROUP BY vocabulary.prefix
 ORDER BY vocabulary.prefix ASC
 ;
 SQL;
-                $prefixIris += $this->connection->executeQuery($sql, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
+                $sqlClasses = <<<SQL
+SELECT vocabulary.prefix, vocabulary.namespace_uri
+FROM vocabulary
+JOIN resource_class ON resource_class.vocabulary_id = vocabulary.id
+JOIN resource ON resource.resource_class_id = resource_class.id
+JOIN media ON media.id = resource.resource_id
+WHERE media.item_id IN (:ids)
+GROUP BY vocabulary.prefix
+ORDER BY vocabulary.prefix ASC
+;
+SQL;
+                $prefixIris += $this->connection->executeQuery($sqlProperties, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
+                $prefixIris += $this->connection->executeQuery($sqlClasses, ['ids' => $ids], ['ids' => \Doctrine\DBAL\Connection::PARAM_INT_ARRAY])->fetchAllKeyValue();
 
                 // Manage special prefixes.
                 $sql = <<<SQL
@@ -462,6 +487,7 @@ SQL;
             $prefixIris[strtok($this->rdfsLabel, ':')] = 'http://www.w3.org/2000/01/rdf-schema#';
         }
 
+        // TODO Check if data type geometry is used.
         if (class_exists('DataTypeGeometry\Entity\DataTypeGeography')) {
             $prefixIris['geo'] = 'http://www.opengis.net/ont/geosparql#';
         }
