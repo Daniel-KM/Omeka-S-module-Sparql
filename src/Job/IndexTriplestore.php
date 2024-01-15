@@ -1140,17 +1140,48 @@ SQL;
             return false;
         }
 
+        // Laminas http client loads the file in memory, so try curl first.
+        // curl --location --request POST 'http://localhost/sparql/triplestore/data' --header 'Content-Type: text/turtle' --data '@/var/www/html/files/triplestore/triplestore.ttl'
+        // curl --location --request POST 'http://localhost/sparql/triplestore/data' --header 'Content-Type: multipart/form-data' --form 'triplestore.ttl=@/var/www/html/files/triplestore/triplestore.ttl'
         try {
-            $response = $this->httpClient
-                ->setUri($this->fusekiEndpoint . '/' . $this->datasetName . '/data')
-                ->setMethod(HttpRequest::METHOD_POST)
-                // Don't use file upload, it uses a wrong data type.
-                // ->setFileUpload($this->filepath, 'file', null, 'text/turtle')
-                ->setHeaders(['Content-Type' => 'text/turtle; charset=utf-8'])
-                ->setRawBody(file_get_contents($this->filepath))
-                ->send();
-            if (!$response->isSuccess()) {
-                throw new Exception($response->getBody() ?: $response->getReasonPhrase());
+            if (function_exists('curl_init')) {
+                $curl = curl_init($this->fusekiEndpoint . '/' . $this->datasetName . '/data');
+                if (!$curl) {
+                    $httpCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                    throw new Exception('Curl cannot send data: error ' . $httpCode);
+                }
+                $file = curl_file_create($this->filepath, 'text/turtle', basename($this->filepath));
+                $data = [
+                    'file' => $file,
+                ];
+                curl_setopt_array($curl, [
+                    CURLOPT_HEADER => true,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => $data,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_USERAGENT => 'curl/' . curl_version()['version'],
+                ]);
+                $result = curl_exec($curl);
+                if ($result === false) {
+                    $httpCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                    curl_close($curl);
+                    throw new Exception('Curl cannot send file: error ' . $httpCode);
+                }
+                curl_close($curl);
+            } else {
+                $response = $this->httpClient
+                    ->setUri($this->fusekiEndpoint . '/' . $this->datasetName . '/data')
+                    ->setMethod(HttpRequest::METHOD_POST)
+                    // Don't use file upload, it uses a wrong data type.
+                    // ->setFileUpload($this->filepath, 'file', null, 'text/turtle')
+                    ->setHeaders(['Content-Type' => 'text/turtle; charset=utf-8'])
+                    ->setRawBody(file_get_contents($this->filepath))
+                    ->send();
+                if (!$response->isSuccess()) {
+                    throw new Exception($response->getBody() ?: $response->getReasonPhrase());
+                }
             }
         } catch (Exception $e) {
             $this->logger->warn(
