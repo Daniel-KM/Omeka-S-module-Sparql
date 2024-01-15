@@ -135,6 +135,10 @@ class Module extends AbstractModule
             'datatype_whitelist' => $settings->get('sparql_datatype_whitelist', $configModule['sparql_datatype_whitelist']),
             'datatype_blacklist' => $settings->get('sparql_datatype_blacklist', $configModule['sparql_datatype_blacklist']),
             'arc2_write_key' => $settings->get('sparql_arc2_write_key', $configModule['sparql_arc2_write_key']),
+            'fuseki_endpoint' => $settings->get('sparql_fuseki_endpoint', $configModule['sparql_fuseki_endpoint']),
+            'fuseki_authmode' => $settings->get('sparql_fuseki_authmode', $configModule['sparql_fuseki_authmode']),
+            'fuseki_username' => $settings->get('sparql_fuseki_username', $configModule['sparql_fuseki_username']),
+            'fuseki_password' => $settings->get('sparql_fuseki_password', $configModule['sparql_fuseki_password']),
             'limit_per_page' => $settings->get('sparql_limit_per_page', $configModule['sparql_limit_per_page']),
             'indexes' => $settings->get('sparql_indexes', $configModule['sparql_indexes']),
         ];

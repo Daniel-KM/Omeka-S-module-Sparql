@@ -7,6 +7,8 @@ use ARC2_Store;
 use EasyRdf\Graph;
 use EasyRdf\RdfNamespace;
 use Exception;
+use Laminas\Http\Client as HttpClient;
+use Laminas\Http\Request as HttpRequest;
 use Omeka\Api\Representation\AbstractResourceEntityRepresentation;
 use Omeka\Job\AbstractJob;
 
@@ -33,6 +35,11 @@ class IndexTriplestore extends AbstractJob
     protected $entityManager;
 
     /**
+     * @var \Laminas\Http\Client
+     */
+    protected $httpClient;
+
+    /**
      * @var \Laminas\Log\Logger
      */
     protected $logger;
@@ -53,9 +60,19 @@ class IndexTriplestore extends AbstractJob
     protected $context;
 
     /**
+     * @var string
+     */
+    protected $contextSparql;
+
+    /**
+     * @var string
+     */
+    protected $contextTurtle;
+
+    /**
      * @var array
      */
-    protected $contextShort;
+    protected $contextUsed;
 
     /**
      * @var string
@@ -81,6 +98,16 @@ class IndexTriplestore extends AbstractJob
      * @var string
      */
     protected $filepath;
+
+    /**
+     * @var string
+     */
+    protected $fusekiEndpoint;
+
+    /**
+     * @var array
+     */
+    protected $fusekiAuth;
 
     /**
      * @var array
@@ -185,6 +212,7 @@ class IndexTriplestore extends AbstractJob
         $this->logger = $services->get('Omeka\Logger');
         $this->settings = $services->get('Omeka\Settings');
         $this->easyMeta = $services->get('EasyMeta');
+        $this->httpClient = $services->get('Omeka\HttpClient');
         $this->connection = $services->get('Omeka\Connection');
         $this->entityManager = $services->get('Omeka\EntityManager');
 
@@ -195,6 +223,10 @@ class IndexTriplestore extends AbstractJob
 
         $this->datasetName = 'triplestore';
 
+        // Prepare triplestore path.
+        $basePath = $this->config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $this->filepath = $basePath . '/triplestore/' . $this->datasetName . '.ttl';
+
         // Define indexes to create.
         // TODO Define an interface with init, prepare dataset and store to manage all indexers separately.
         $this->indexes = $this->getArg('indexes', $this->settings->get('sparql_indexes', $this->config['sparql']['config']['sparql_indexes']));
@@ -202,16 +234,12 @@ class IndexTriplestore extends AbstractJob
 
         $this->initOptions();
 
+        // Step 1: init triplestores.
+
         // Checks are done during init and the index may be removed.
         $defaultIndexes = $this->indexes;
 
-        if (isset($this->indexes['db'])) {
-            $this->initStoreArc2();
-        }
-
-        if (isset($this->indexes['turtle'])) {
-            $this->initStoreTriplestore();
-        }
+        $this->initStore();
 
         if (empty($this->indexes)) {
             $this->logger->warn(
@@ -228,7 +256,11 @@ class IndexTriplestore extends AbstractJob
 
         $timeStart = microtime(true);
 
-        $this->processindexes();
+        // Step 2: init indexes and datasets and add vocabularies.
+        $this->prepareDataset();
+
+        // Step 3: fill resources.
+        $this->processIndexes();
 
         $timeTotal = (int) (microtime(true) - $timeStart);
 
@@ -283,7 +315,7 @@ class IndexTriplestore extends AbstractJob
         }
         $this->propertyMeta += array_flip($fieldsIncluded);
 
-        $this->initPrefixesShort();
+        $this->initPrefixesUsed();
 
         $this->dataTypeWhiteList = $this->getArg('datatype_whitelist', $this->settings->get('sparql_datatype_whitelist', $this->config['sparql']['config']['sparql_datatype_whitelist']));
         $this->dataTypeWhiteList = array_combine($this->dataTypeWhiteList, $this->dataTypeWhiteList);
@@ -363,7 +395,7 @@ class IndexTriplestore extends AbstractJob
     /**
      * Prepare the vocabulary prefixes used in the list of resources.
      */
-    protected function initPrefixesShort(): self
+    protected function initPrefixesUsed(): self
     {
         $prefixIris = [
             'o' => 'http://omeka.org/s/vocabs/o#',
@@ -435,8 +467,35 @@ SQL;
         }
 
         ksort($prefixIris);
-        $this->contextShort = $prefixIris;
+        $this->contextUsed = $prefixIris;
 
+        $this->contextTurtle = '';
+        $this->contextSparql = '';
+        foreach ($this->contextUsed as $prefix => $iri) {
+            $this->contextTurtle .= "@prefix $prefix: <$iri> .\n";
+            $this->contextSparql .= "PREFIX $prefix: <$iri>\n";
+        }
+        $this->contextTurtle .= "\n";
+        $this->contextSparql .= "\n";
+
+        return $this;
+    }
+
+    protected function initStore(): self
+    {
+        foreach ($this->indexes as $index) switch ($index) {
+            case 'db':
+                $this->initStoreArc2();
+                break;
+            case 'fuseki':
+                $this->initStoreFuseki();
+                break;
+            case 'turtle':
+                $this->initStoreTriplestore();
+                break;
+            default:
+                break;
+        }
         return $this;
     }
 
@@ -527,12 +586,185 @@ SQL;
         return $this;
     }
 
+    /**
+     * @see https://jena.apache.org/documentation/fuseki2/fuseki-data-access-control.html
+     */
+    protected function initStoreFuseki(): self
+    {
+        $this->fusekiEndpoint = $this->getArg('fuseki_endpoint', $this->settings->get('sparql_fuseki_endpoint', $this->config['sparql']['config']['sparql_fuseki_endpoint']));
+
+        $this->fusekiAuth = [];
+        $this->fusekiAuth['type'] = $this->getArg('fuseki_authmode', $this->settings->get('sparql_fuseki_authmode', $this->config['sparql']['config']['sparql_fuseki_authmode']));
+        $this->fusekiAuth['user'] = $this->getArg('fuseki_username', $this->settings->get('sparql_fuseki_username', $this->config['sparql']['config']['sparql_fuseki_username']));
+        $this->fusekiAuth['password'] = $this->getArg('fuseki_password', $this->settings->get('sparql_fuseki_password', $this->config['sparql']['config']['sparql_fuseki_password']));
+
+        if (!$this->fusekiEndpoint) {
+            unset($this->indexes['fuseki']);
+            $this->logger->err(
+                'Sparql dataset "{dataset}" ({format}): A sparql endpoint is required to index resources in Fuseki.', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'fuseki']
+            );
+            return $this;
+        }
+
+        // Set authentication one time.
+        if ($this->fusekiAuth['type']) {
+            if (!$this->fusekiAuth['user'] && $this->fusekiAuth['password']) {
+                unset($this->indexes['fuseki']);
+                $this->logger->err(
+                    'Sparql dataset "{dataset}" ({format}): A authentication mode is set, but no user name/password.', // @translate
+                    ['dataset' => $this->datasetName, 'format' => 'fuseki']
+                );
+                return $this;
+            }
+            $this->httpClient
+                ->setAuth($this->fusekiAuth['user'], $this->fusekiAuth['password'], $this->fusekiAuth['type'] === HttpClient::AUTH_DIGEST ? HttpClient::AUTH_DIGEST : HttpClient::AUTH_BASIC);
+        }
+
+        $this->httpClient
+            ->setUri($this->fusekiEndpoint . '/$/ping')
+            // Post avoid caching for ping.
+            ->setMethod(HttpRequest::METHOD_POST);
+        $response = $this->httpClient->send();
+        if (!$response->isSuccess()) {
+            unset($this->indexes['fuseki']);
+            $this->logger->err(
+                'Sparql dataset "{dataset}" ({format}): the endpoint is not available: {message}.', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'fuseki', 'message' => $response->getBody() ?: $response->getReasonPhrase()]
+            );
+            return $this;
+        }
+
+        return $this;
+    }
+
     protected function initStoreTriplestore(): self
     {
-        // Prepare output path.
-        $basePath = $this->config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $this->filepath = $basePath . '/triplestore/' . $this->datasetName . '.ttl';
         file_put_contents($this->filepath, '');
+        return $this;
+    }
+
+    protected function prepareDataset(): self
+    {
+        foreach ($this->indexes as $index) switch ($index) {
+            case 'db':
+                $this->prepareDatasetArc2();
+                break;
+            case 'fuseki':
+                $this->prepareDatasetFuseki();
+                break;
+            case 'turtle':
+                $this->prepareDatasetTriplestore();
+                break;
+            default:
+                break;
+        }
+        return $this;
+    }
+
+    protected function prepareDatasetArc2(): self
+    {
+        try {
+            $this->storeArc2->reset(true);
+            $errors = $this->storeArc2->getErrors();
+            if ($errors) {
+                throw new Exception(implode("\n", $errors));
+            }
+        } catch (Exception $e) {
+            unset($this->indexes['db']);
+            $this->logger->err(
+                'Sparql dataset "{dataset}" ({format}): {message}', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'db', 'message' => $e->getMessage()]
+            );
+        }
+        return $this;
+    }
+
+    protected function prepareDatasetFuseki(): self
+    {
+        // Check if the dataset exists.
+        $response = $this->httpClient
+            ->setUri($this->fusekiEndpoint . '/$/datasets/' . $this->datasetName . '/')
+            ->setMethod(HttpRequest::METHOD_GET)
+            ->send();
+        $datasetExists = $response->isSuccess();
+
+        // Purge dataset if exists.
+        // To delete the dataset is quicker.
+        // TODO Use methods to sparql delete.
+        if ($datasetExists) {
+            $response = $this->httpClient
+                ->setUri($this->fusekiEndpoint . '/$/datasets/' . $this->datasetName . '/')
+                ->setMethod(HttpRequest::METHOD_DELETE)
+                ->send();
+            if (!$response->isSuccess()) {
+                unset($this->indexes['fuseki']);
+                $this->logger->err(
+                    'Sparql dataset "{dataset}" ({format}): the dataset cannot be deleted: {message}.', // @translate
+                    ['dataset' => $this->datasetName, 'format' => 'fuseki', 'message' => $response->getBody() ?: $response->getReasonPhrase()]
+                );
+                return $this;
+            }
+        }
+
+        // Create dataset.
+        $response = $this->httpClient
+            ->setUri($this->fusekiEndpoint . '/$/datasets')
+            ->setMethod(HttpRequest::METHOD_POST)
+            ->setParameterPost([
+                'dbType' => 'tdb2',
+                'dbName' => $this->datasetName,
+            ])
+            ->send();
+        if (!$response->isSuccess()) {
+            unset($this->indexes['fuseki']);
+            $this->logger->err(
+                'Sparql dataset "{dataset}" ({format}): the dataset cannot be created: {message}.', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'fuseki', 'message' => $response->getBody() ?: $response->getReasonPhrase()]
+            );
+            return $this;
+        }
+
+        // Check the dataset.
+        $response = $this->httpClient
+            ->setUri($this->fusekiEndpoint . '/$/datasets/' . $this->datasetName . '/')
+            ->setMethod(HttpRequest::METHOD_GET)
+            ->send();
+        $result = json_decode($response->getBody(), true);
+        if (!is_array($result)) {
+            unset($this->indexes['fuseki']);
+            $this->logger->err(
+                'Sparql dataset "{dataset}" ({format}): output is invalid.', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'fuseki']
+            );
+            return $this;
+        }
+
+        // Activate dataset.
+        if (empty($result['ds.state']) || $result['ds.state'] !== 'active') {
+            $response = $this->httpClient
+                ->setUri($this->fusekiEndpoint . '/$/datasets/' . $this->datasetName . '/')
+                ->setMethod(HttpRequest::METHOD_POST)
+                ->setParameterPost([
+                    'state' => 'active',
+                ])
+                ->send();
+            if (!$response->isSuccess()) {
+                unset($this->indexes['fuseki']);
+                $this->logger->err(
+                    'Sparql dataset "{dataset}" ({format}): the dataset cannot be activated: {message}.', // @translate
+                    ['dataset' => $this->datasetName, 'format' => 'fuseki', 'message' => $response->getBody() ?: $response->getReasonPhrase()]
+                );
+                return $this;
+            }
+        }
+
+        return $this;
+    }
+
+    protected function prepareDatasetTriplestore(): self
+    {
+        file_put_contents($this->filepath, $this->contextTurtle . "\n", LOCK_EX);
         return $this;
     }
 
@@ -541,13 +773,9 @@ SQL;
      */
     protected function processIndexes(): self
     {
-        // Step 1: init indexes and add vocabularies used in triplestore.
-
-        $this->prepareDataset();
-
         $queryVisibility = $this->resourcePublicOnly ? ['is_public' => true] : [];
 
-        // Step 2: add item sets.
+        // Step 1: add item sets.
 
         if (in_array('item_sets', $this->resourceTypes)) {
             $response = $this->api->search('item_sets', $queryVisibility, ['returnScalar' => 'id']);
@@ -584,7 +812,7 @@ SQL;
             $this->entityManager->clear();
         }
 
-        // Step 3: adding items and attached media.
+        // Step 2: adding items and attached media.
 
         if (in_array('items', $this->resourceTypes)) {
             $response = $this->api->search('items', $this->resourceQuery, ['returnScalar' => 'id']);
@@ -741,66 +969,24 @@ SQL;
         return $turtle;
     }
 
-    protected function prepareDataset(): self
-    {
-        foreach ($this->indexes as $index) switch ($index) {
-            case 'db':
-                $this->prepareDatasetArc2();
-                break;
-            case 'turtle':
-                $this->prepareDatasetTriplestore();
-                break;
-            default:
-                break;
-        }
-        return $this;
-    }
-
-    protected function prepareDatasetArc2(): self
-    {
-        try {
-            $this->storeArc2->reset(true);
-            $errors = $this->storeArc2->getErrors();
-            if ($errors) {
-                throw new Exception(implode("\n", $errors));
-            }
-        } catch (Exception $e) {
-            unset($this->indexes['db']);
-            $this->logger->err(
-                'Sparql dataset "{dataset}" ({format}): {message}', // @translate
-                ['dataset' => $this->datasetName, 'format' => 'db', 'message' => $e->getMessage()]
-            );
-        }
-        return $this;
-    }
-
-    protected function prepareDatasetTriplestore(): self
-    {
-        $output = '';
-        $base = '@prefix %1$s: <%2$s> .';
-        foreach ($this->contextShort as $prefix => $iri) {
-            $output .= sprintf($base, $prefix, $iri) . "\n";
-        }
-        $output .= "\n\n";
-        file_put_contents($this->filepath, $output, LOCK_EX);
-        return $this;
-    }
-
     protected function storeTurtle(?string $turtle, AbstractResourceEntityRepresentation $resource): bool
     {
         if (!$turtle) {
             return false;
         }
         foreach ($this->indexes as $index) {
-            $success = false;
             switch ($index) {
                 case 'db':
                     $success = $this->storeTurtleArc2($turtle, $resource);
+                    break;
+                case 'fuseki':
+                    $success = $this->storeTurtleFuseki($turtle, $resource);
                     break;
                 case 'turtle':
                     $success = $this->storeTurtleTriplestore($turtle, $resource);
                     break;
                 default:
+                    $success = false;
                     break;
             }
             if (!$success) {
@@ -824,6 +1010,55 @@ SQL;
             $this->logger->warn(
                 'Sparql dataset "{dataset}" ({format}), {resource_type} #{resource_id}: {message}', // @translate
                 ['dataset' => $this->datasetName, 'format' => 'db', 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id(), 'message' => $e->getMessage()]
+            );
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Store a resource as turtle in Fuseki with a standard sparql query.
+     *
+     * Warning: the admin url of fuseki web app is "/sparql/$/datasets/triplestore",
+     * but the endpoint to query is "/sparql/triplestore".
+     *
+     * @todo Use easyrdf client?
+     */
+    protected function storeTurtleFuseki(string $turtle, AbstractResourceEntityRepresentation $resource): bool
+    {
+        [$prefixes, $triples]  = array_map('trim', explode("\n\n", $turtle . "\n\n", 2));
+        if (!$prefixes || !$triples) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}" ({format}), {resource_type} #{resource_id}: no triples.', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'fuseki', 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id()]
+            );
+            return false;
+        }
+
+        // Note: turtle is output with the initial format "@prefix xxx: <uri> .",
+        // but the format "prefix xxx: <uri>", accepted in turtle too now, must
+        // be used in sparql. So replaces prefixes by the used prefixes.
+
+        $query = $this->contextSparql . "\n\n"
+            . "INSERT DATA {\n"
+            . $triples
+            . "\n}";
+
+        try {
+            $response = $this->httpClient
+                ->setUri($this->fusekiEndpoint . '/' . $this->datasetName . '/')
+                ->setMethod(HttpRequest::METHOD_POST)
+                ->setParameterPost([
+                    'update' => $query,
+                ])
+                ->send();
+            if (!$response->isSuccess()) {
+                throw new Exception($response->getBody() ?: $response->getReasonPhrase());
+            }
+        } catch (Exception $e) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}" ({format}), {resource_type} #{resource_id}: {message}', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'fuseki', 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id(), 'message' => $e->getMessage()]
             );
             return false;
         }

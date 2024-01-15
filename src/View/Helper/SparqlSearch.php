@@ -103,6 +103,7 @@ class SparqlSearch extends AbstractHelper
 
         $sparqlArray = (bool) $options['sparql_array'];
 
+        // TODO Manage proxy to fuseki with easyrdf client.
         /** @var \ARC2_Store $triplestore */
         $triplestore = $this->getSparqlTriplestore($sparqlArray);
         if (!$triplestore) {

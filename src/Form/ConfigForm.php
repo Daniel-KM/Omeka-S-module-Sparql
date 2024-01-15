@@ -126,6 +126,7 @@ class ConfigForm extends Form
                     'data-placeholder' => 'Select data types…', // @translate
                 ],
             ])
+
             ->add([
                 'name' => 'sparql_arc2_write_key',
                 'type' => Element\Text::class,
@@ -139,6 +140,54 @@ class ConfigForm extends Form
                     'value' => substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(128))), 0, 24),
                 ],
             ])
+
+            ->add([
+                'name' => 'sparql_fuseki_endpoint',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Fuseki endpoint', // @translate
+                    'info'
+                ],
+                'attributes' => [
+                    'id' => 'sparql_fuseki_endpoint',
+                ],
+            ])
+            ->add([
+                'name' => 'sparql_fuseki_authmode',
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Fuseki authentication mode', // @translate
+                    'value_options' => [
+                        '' => 'None', // @translate
+                        'basic' => 'Basic', // @translate
+                        'digest' => 'Digest', // @translate
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'sparql_fuseki_authmode',
+                ],
+            ])
+            ->add([
+                'name' => 'sparql_fuseki_username',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Fuseki username', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'sparql_fuseki_username',
+                ],
+            ])
+            ->add([
+                'name' => 'sparql_fuseki_password',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'Fuseki password', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'sparql_fuseki_password',
+                ],
+            ])
+
             ->add([
                 'name' => 'sparql_limit_per_page',
                 'type' => Element\Number::class,
@@ -149,6 +198,7 @@ class ConfigForm extends Form
                     'id' => 'sparql_limit_per_page',
                 ],
             ])
+
             ->add([
                 'name' => 'sparql_indexes',
                 'type' => Element\MultiCheckbox::class,
@@ -156,6 +206,7 @@ class ConfigForm extends Form
                     'label' => 'Index in sparql engine', // @translate
                     'value_options' => [
                         'db' => 'Internal database (used for the internal sparql endpoint)', // @translate
+                        'fuseki' => 'Fuseki (with configuration above)', // @translate
                         'turtle' => 'Triplestore (turtle file, used to index a third party sparql server)', // @translate
                     ],
                 ],
@@ -163,6 +214,7 @@ class ConfigForm extends Form
                     'id' => 'sparql_indexes',
                 ],
             ])
+
             ->add([
                 'name' => 'process',
                 'type' => Element\Submit::class,
@@ -200,6 +252,10 @@ class ConfigForm extends Form
             ])
             ->add([
                 'name' => 'sparql_datatype_blacklist',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'sparql_fuseki_authmode',
                 'required' => false,
             ])
             ->add([

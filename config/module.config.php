@@ -91,11 +91,17 @@ return [
             // Don't set any indexes to let user choose internal or external server.
             'sparql_indexes' => [
                 // 'db',
-                // 'turtle',
                 // 'fuseki',
+                // 'turtle',
             ],
             // TODO Manage api credentials for arc2.
             'sparql_arc2_write_key' => '',
+            // Fuseki.
+            'sparql_fuseki_endpoint' => '',
+            'sparql_fuseki_authmode' => '',
+            'sparql_fuseki_username' => '',
+            'sparql_fuseki_password' => '',
+            // Query.
             'sparql_limit_per_page' => 250,
         ],
         'block_settings' => [
