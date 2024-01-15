@@ -12,6 +12,8 @@ class ConfigForm extends Form
     public function init(): void
     {
         $this
+            // Indexation.
+
             ->add([
                 'name' => 'sparql_resource_types',
                 'type' => Element\MultiCheckbox::class,
@@ -189,17 +191,6 @@ class ConfigForm extends Form
             ])
 
             ->add([
-                'name' => 'sparql_limit_per_page',
-                'type' => Element\Number::class,
-                'options' => [
-                    'label' => 'Max number of results per page', // @translate
-                ],
-                'attributes' => [
-                    'id' => 'sparql_limit_per_page',
-                ],
-            ])
-
-            ->add([
                 'name' => 'sparql_indexes',
                 'type' => Element\MultiCheckbox::class,
                 'options' => [
@@ -225,6 +216,47 @@ class ConfigForm extends Form
                 'attributes' => [
                     'id' => 'process',
                     'value' => 'Process', // @translate
+                ],
+            ])
+
+            // Search.
+
+            ->add([
+                'name' => 'sparql_endpoint',
+                'type' => Element\Radio::class,
+                'options' => [
+                    'label' => 'Endpoint', // @translate
+                    'value_options' => [
+                        'auto' => 'Automatic (external if any, else internal if any)', // @translate
+                        'none' => 'None', // @translate
+                        'internal' => 'Internal (/sparql)', // @translate
+                        'external' => 'External (set below)', // @translate
+                        'any' => 'Internal and external (set below)', // @translate
+                        // TODO Proxify external endpoint with the internal url, in particular for stats.
+                    ],
+                ],
+                'attributes' => [
+                    'id' => 'sparql_endpoint',
+                ],
+            ])
+            ->add([
+                'name' => 'sparql_endpoint_external',
+                'type' => Element\Text::class,
+                'options' => [
+                    'label' => 'External endpoint (option above)', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'sparql_endpoint_external',
+                ],
+            ])
+            ->add([
+                'name' => 'sparql_limit_per_page',
+                'type' => Element\Number::class,
+                'options' => [
+                    'label' => 'Max results per page (internal endpoint)', // @translate
+                ],
+                'attributes' => [
+                    'id' => 'sparql_limit_per_page',
                 ],
             ])
         ;
@@ -261,6 +293,10 @@ class ConfigForm extends Form
             ])
             ->add([
                 'name' => 'sparql_indexes',
+                'required' => false,
+            ])
+            ->add([
+                'name' => 'sparql_endpoint',
                 'required' => false,
             ])
         ;

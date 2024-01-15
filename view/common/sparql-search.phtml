@@ -10,12 +10,11 @@
  * @var string $interface "default" or "yasgui"
  * @var array $namespaces
  * @var string $errorMessage
+ * @var array $yasgui Options for yasgui, included endpoint
  * And passed options from the helper.
  */
 
 use \EasyRdf\RdfNamespace;
-
-// The form uses the format of Omeka / item / search.
 
 $plugins = $this->getHelperPluginManager();
 $escape = $plugins->get('escapeHtml');
@@ -23,36 +22,11 @@ $assetUrl = $plugins->get('assetUrl');
 $translate = $plugins->get('translate');
 $escapeAttr = $plugins->get('escapeHtmlAttr');
 
-$this->htmlElement('body')->appendAttribute('class', 'sparql');
 $this->headLink()
     ->appendStylesheet($assetUrl('css/sparql.css', 'Sparql'));
 
-if ($interface === 'yasgui') {
-    $prefixes = '';
-    foreach ($namespaces as $prefix => $iri) $prefixes .= "PREFIX $prefix: <$iri>\n";
-    $script = <<<'JS'
-const sparqlEndpoint = %1$s;
-const sparqlQuery = %2$s;
-JS;
-    $sparqlQuery = <<<'SPARQL'
-SELECT * WHERE {
-  ?sub ?pred ?obj .
-} LIMIT 10
-SPARQL;
-    $this->headLink()
-        ->appendStylesheet($assetUrl('vendor/yasgui/yasgui.min.css', 'Sparql'));
-    $this->headScript()
-        ->appendScript(sprintf($script, json_encode($plugins->get('url')('sparql', [], ['force_canonical' => true]), 320), json_encode($prefixes . "\n" . $sparqlQuery), 320))
-        ->appendFile($assetUrl('vendor/yasgui/yasgui.min.js', 'Sparql'), 'text/javascript', ['defer' => 'defer'])
-        ->appendFile($assetUrl('js/sparql.js', 'Sparql'), 'text/javascript', ['defer' => 'defer']);
-}
+$this->htmlElement('body')->appendAttribute('class', 'sparql');
 ?>
-
-<?php if ($interface === 'yasgui'): ?>
-
-  <div id="yasgui"></div>
-
-<?php else: ?>
 
 <div class="field namespaces">
     <label><?= $translate('Namespaces') ?></label>
@@ -78,94 +52,92 @@ SPARQL;
 
 <?php if ($errorMessage): ?>
 
-    <div class='error error-sparql'>
-        <h3><?= $escape($translate('Error')) ?></h3>
-        <p>
-            <?= nl2br($escape($errorMessage)) ?>
-        </p>
-    </div>
+<div class='error error-sparql'>
+    <h3><?= $escape($translate('Error')) ?></h3>
+    <p>
+        <?= nl2br($escape($errorMessage)) ?>
+    </p>
+</div>
 
 <?php elseif ($result && $format === 'text'): ?>
 
-    <div class="result result-text">
-        <h3><?= $escape($translate('Results')) ?></h3>
-        <table class="sparql-result tablesaw tablesaw-stack">
-            <thead>
-                <tr>
-                    <?php foreach ($result['result']['variables'] as $variable): ?>
-                    <th><?= $escape($variable) ?></th>
-                    <?php endforeach; ?>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($result['result']['rows'] as $row): ?>
-                <tr>
-                    <?php foreach ($row as $key => $value):
-                        if (!in_array($key, $result['result']['variables'])) continue;
-                        $type = $row[$key . ' type'] ?? null;
-                        $dataType = $row[$key . ' datatype'] ?? null;
-                        $lang = $row[$key . ' lang'] ?? null;
-                        ?>
-                        <td>
-                            <span class="value-content"<?= $type ? ' data-type="' . $escapeAttr($type) . '"' : '' ?> <?= $lang ? ' lang="' . $escapeAttr($lang) . '"' : '' ?>"><?= $escape($value) ?></span>
-                            <?php if ($dataType || $type): ?>
-                            <span class="data-type">^^<?= $escape($dataType ?: $type) ?></span>
-                            <?php endif; ?>
-                            <?php if ($lang): ?>
-                            <span class="language">@<?= $escape($lang) ?></span>
-                            <?php endif; ?>
-                        </td>
-                    <?php endforeach; ?>
-                </tr>
+<div class="result result-text">
+    <h3><?= $escape($translate('Results')) ?></h3>
+    <table class="sparql-result tablesaw tablesaw-stack">
+        <thead>
+            <tr>
+                <?php foreach ($result['result']['variables'] as $variable): ?>
+                <th><?= $escape($variable) ?></th>
                 <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($result['result']['rows'] as $row): ?>
+            <tr>
+                <?php foreach ($row as $key => $value):
+                    if (!in_array($key, $result['result']['variables'])) continue;
+                    $type = $row[$key . ' type'] ?? null;
+                    $dataType = $row[$key . ' datatype'] ?? null;
+                    $lang = $row[$key . ' lang'] ?? null;
+                    ?>
+                    <td>
+                        <span class="value-content"<?= $type ? ' data-type="' . $escapeAttr($type) . '"' : '' ?> <?= $lang ? ' lang="' . $escapeAttr($lang) . '"' : '' ?>><?= $escape($value) ?></span>
+                        <?php if ($dataType || $type): ?>
+                        <span class="data-type">^^<?= $escape($dataType ?: $type) ?></span>
+                        <?php endif; ?>
+                        <?php if ($lang): ?>
+                        <span class="language">@<?= $escape($lang) ?></span>
+                        <?php endif; ?>
+                    </td>
+                <?php endforeach; ?>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
 
 <?php elseif ($result): ?>
 
-    <div class="result result-html">
-        <h3><?= $escape($translate('Results')) ?></h3>
-        <table class="sparql-result tablesaw tablesaw-stack">
-            <thead>
-                <tr>
-                    <?php foreach ($result['result']['variables'] as $variable): ?>
-                    <th><?= $escape($variable) ?></th>
-                    <?php endforeach; ?>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($result['result']['rows'] as $row): ?>
-                <tr>
-                    <?php foreach ($row as $key => $value):
-                        if (!in_array($key, $result['result']['variables'])) continue;
-                        $type = $row[$key . ' type'] ?? null;
-                        $dataType = $row[$key . ' datatype'] ?? null;
-                        $lang = $row[$key . ' lang'] ?? null;
-                        ?>
-                        <td>
-                            <?php if ($type === 'uri'): ?>
-                            <a class="value-content" href="<?= $escapeAttr($value) ?>"><?= $escape(RdfNamespace::shorten($value) ?? $value) ?></a>
-                            <?php else: ?>
-                            <span class="value-content"<?= $type ? ' data-type="' . $escapeAttr($type) . '"' : '' ?><?= $lang ? ' lang="' . $escapeAttr($lang) . '"' : '' ?>><?= $escape($value) ?></span>
-                            <?php endif; ?>
-                            <?php if ($type && $dataType): ?>
-                            <?php $dataTypeReadable = $dataType ? RdfNamespace::shorten($dataType) ?? $dataType : null; ?>
-                            <a class="data-type" href="<?= $escapeAttr($dataType) ?>"><?= $escape($dataTypeReadable) ?></a>
-                            <?php elseif ($type): ?>
-                            <span class="data-type"><?= $escape($type) ?></span>
-                            <?php endif; ?>
-                            <?php if ($lang): ?>
-                            <span class="language"><?= $escape($lang) ?></span>
-                            <?php endif; ?>
-                        </td>
-                    <?php endforeach; ?>
-                </tr>
+<div class="result result-html">
+    <h3><?= $escape($translate('Results')) ?></h3>
+    <table class="sparql-result tablesaw tablesaw-stack">
+        <thead>
+            <tr>
+                <?php foreach ($result['result']['variables'] as $variable): ?>
+                <th><?= $escape($variable) ?></th>
                 <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-
-<?php endif; ?>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($result['result']['rows'] as $row): ?>
+            <tr>
+                <?php foreach ($row as $key => $value):
+                    if (!in_array($key, $result['result']['variables'])) continue;
+                    $type = $row[$key . ' type'] ?? null;
+                    $dataType = $row[$key . ' datatype'] ?? null;
+                    $lang = $row[$key . ' lang'] ?? null;
+                    ?>
+                    <td>
+                        <?php if ($type === 'uri'): ?>
+                        <a class="value-content" href="<?= $escapeAttr($value) ?>"><?= $escape(RdfNamespace::shorten($value) ?? $value) ?></a>
+                        <?php else: ?>
+                        <span class="value-content"<?= $type ? ' data-type="' . $escapeAttr($type) . '"' : '' ?><?= $lang ? ' lang="' . $escapeAttr($lang) . '"' : '' ?>><?= $escape($value) ?></span>
+                        <?php endif; ?>
+                        <?php if ($type && $dataType): ?>
+                        <?php $dataTypeReadable = $dataType ? RdfNamespace::shorten($dataType) ?? $dataType : null; ?>
+                        <a class="data-type" href="<?= $escapeAttr($dataType) ?>"><?= $escape($dataTypeReadable) ?></a>
+                        <?php elseif ($type): ?>
+                        <span class="data-type"><?= $escape($type) ?></span>
+                        <?php endif; ?>
+                        <?php if ($lang): ?>
+                        <span class="language"><?= $escape($lang) ?></span>
+                        <?php endif; ?>
+                    </td>
+                <?php endforeach; ?>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
 
 <?php endif; ?>

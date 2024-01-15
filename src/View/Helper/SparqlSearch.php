@@ -23,6 +23,11 @@ class SparqlSearch extends AbstractHelper
     const PARTIAL_NAME = 'common/sparql-search';
 
     /**
+     * The partial view script for yasgui.
+     */
+    const PARTIAL_NAME_YASGUI = 'common/sparql-search-yasgui';
+
+    /**
      * @var \Doctrine\DBAL\Connection
      */
     protected $connection;
@@ -88,44 +93,57 @@ class SparqlSearch extends AbstractHelper
      * @param array $options
      * - template (string)
      * - method (string): get (default) or post
-     * - sparql_array (bool): return results according to sparl protocol v1.1.
+     * - sparqlArray (bool): return results according to sparl protocol v1.1.
      * - interface (string): "default" (default) or "yasgui".
+     * - yasgui (array):
+     *   - endpoint (string): url to use (default: see main config).
      * @return string|array Html string or result array.
      */
     public function __invoke(array $options = [])
     {
-        $options += [
-            'template' => null,
-            'method' => null,
-            'sparql_array' => null,
-            'interface' => null,
-        ];
-
-        $sparqlArray = (bool) $options['sparql_array'];
-
-        // TODO Manage proxy to fuseki with easyrdf client.
-        /** @var \ARC2_Store $triplestore */
-        $triplestore = $this->getSparqlTriplestore($sparqlArray);
-        if (!$triplestore) {
-            return $sparqlArray ? [] : '';
-        }
-
         $view = $this->getView();
 
-        $result = $this->sparqlQueryTriplestore($triplestore);
+        $options = $this->checkOptions($options);
 
-        if (!empty($options['method'])) {
-            $result['form']->setAttribute('method', $options['method']);
+        // TODO Manage proxy to fuseki with easyrdf client.
+
+        if ($options['interface'] !== 'yasgui' || $options['yasgui']['internal']) {
+            /** @var \ARC2_Store $triplestore */
+            $triplestore = $this->getSparqlTriplestore($options['sparqlArray']);
+            if (!$triplestore) {
+                return $options['sparqlArray'] ? [] : '';
+            }
+
+            $result = $this->sparqlQueryTriplestore($triplestore);
+
+            if (!empty($options['method'])) {
+                $result['form']->setAttribute('method', $options['method']);
+            }
+        } else {
+            $result = [
+                'site' => $this->currentSite->__invoke(),
+                'form' => null,
+                'query' => $this->params->fromPost('query') ?: $this->params->fromQuery('query'),
+                'result' => null,
+                'format' => null,
+                'triplestore' => null,
+                'namespaces' => $this->prepareNamespaces(),
+                'errorMessage' => null,
+            ];
         }
 
-        if ($sparqlArray) {
+        if ($options['sparqlArray']) {
             return $result;
         }
 
         $result += $options;
         unset($result['triplestore']);
 
-        $template = empty($options['template']) ? self::PARTIAL_NAME : $options['template'];
+        $template = empty($options['template'])
+            ? ($options['interface'] === 'yasgui'
+                ? self::PARTIAL_NAME_YASGUI
+                : self::PARTIAL_NAME)
+            : $options['template'];
 
         return $view->partial($template, $result);
     }
@@ -205,6 +223,47 @@ class SparqlSearch extends AbstractHelper
         }
 
         return $store;
+    }
+
+    protected function checkOptions(array $options): array
+    {
+        $options += [
+            'template' => null,
+            'method' => null,
+            'sparqlArray' => false,
+            'interface' => null,
+            'yasgui' => [],
+        ];
+
+        $options['sparqlArray'] = (bool) $options['sparqlArray'];
+
+        if ($options['interface'] === 'yasgui') {
+            $plugins = $this->getView()->getHelperPluginManager();
+            if (empty($options['yasgui']['endpoint'])) {
+                $setting = $plugins->get('setting');
+                $endpoint = $setting('sparql_endpoint');
+                $endpointExternal = $setting('sparql_endpoint_external');
+                if ($endpoint === 'none' || ($endpoint === 'external' && !$endpointExternal)) {
+                    $options['yasgui']['endpoint'] = null;
+                    $options['yasgui']['internal'] = false;
+                } elseif (!$endpointExternal || $endpoint === 'internal') {
+                    $urlHelper = $plugins->get('url');
+                    $options['yasgui']['endpoint'] = $urlHelper('sparql', [], ['force_canonical' => true]);
+                    $options['yasgui']['internal'] = true;
+                } else {
+                    $options['yasgui']['endpoint'] = $endpointExternal;
+                    $options['yasgui']['internal'] = false;
+                }
+            } else {
+                $urlHelper = $plugins->get('url');
+                $options['yasgui']['internal'] = $options['yasgui']['endpoint'] === $urlHelper('sparql')
+                    || $options['yasgui']['endpoint'] === $urlHelper('sparql', [], ['force_canonical' => true]);
+            }
+        } else {
+            $options['interface'] = 'default';
+        }
+
+        return $options;
     }
 
     protected function sparqlQueryTriplestore(ARC2_Store $triplestore): array

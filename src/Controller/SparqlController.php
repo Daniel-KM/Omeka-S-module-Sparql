@@ -13,9 +13,22 @@ class SparqlController extends AbstractActionController
      */
     public function sparqlAction()
     {
+        $settings = $this->settings();
+
+        $endpoint = $settings->get('sparql_endpoint');
+        if ($endpoint === 'none' || $endpoint === 'external') {
+            return $this->notFoundAction();
+        } elseif ($endpoint === 'auto') {
+            // Check if there is an external endpoint.
+            $external = $settings->get('sparql_endpoint_external');
+            if ($external) {
+                return $this->notFoundAction();
+            }
+        }
+
         $sparqlSearch = $this->viewHelpers()->get('sparqlSearch');
         $result = $sparqlSearch([
-            'sparql_array' => true,
+            'sparqlArray' => true,
         ]);
         if (!$result) {
             $message = new PsrMessage('The RDF triplestore is not available currently.'); // @translate

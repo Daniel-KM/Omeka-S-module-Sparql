@@ -57,6 +57,8 @@ return [
     ],
     'sparql' => [
         'config' => [
+            // Indexation.
+
             'sparql_resource_types' => [
                 'item_sets',
                 'items',
@@ -102,7 +104,11 @@ return [
             'sparql_fuseki_authmode' => '',
             'sparql_fuseki_username' => '',
             'sparql_fuseki_password' => '',
-            // Query.
+
+            // Search.
+
+            'sparql_endpoint' => 'auto',
+            'sparql_endpoint_external' => '',
             'sparql_limit_per_page' => 250,
         ],
         'block_settings' => [
