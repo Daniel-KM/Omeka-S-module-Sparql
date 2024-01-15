@@ -155,8 +155,8 @@ class ConfigForm extends Form
                 'options' => [
                     'label' => 'Index in sparql engine', // @translate
                     'value_options' => [
+                        'db' => 'Internal database (used for the internal sparql endpoint)', // @translate
                         'turtle' => 'Triplestore (turtle file, used to index a third party sparql server)', // @translate
-                        'arc2' => 'Semsol Arc2 (omeka database, used for the internal sparql triplestore)', // @translate
                     ],
                 ],
                 'attributes' => [

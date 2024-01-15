@@ -135,7 +135,7 @@ class IndexTriplestore extends AbstractJob
     protected $resourceTypes;
 
     /**
-     * @var ARC2_Store
+     * @var \ARC2_Store
      */
     protected $storeArc2;
 
@@ -184,7 +184,7 @@ class IndexTriplestore extends AbstractJob
         $this->config = $services->get('Config');
         $this->logger = $services->get('Omeka\Logger');
         $this->settings = $services->get('Omeka\Settings');
-        $this->easyMeta= $services->get('EasyMeta');
+        $this->easyMeta = $services->get('EasyMeta');
         $this->connection = $services->get('Omeka\Connection');
         $this->entityManager = $services->get('Omeka\EntityManager');
 
@@ -196,8 +196,23 @@ class IndexTriplestore extends AbstractJob
         $this->datasetName = 'triplestore';
 
         // Define indexes to create.
-
+        // TODO Define an interface with init, prepare dataset and store to manage all indexers separately.
         $this->indexes = $this->getArg('indexes', $this->settings->get('sparql_indexes', $this->config['sparql']['config']['sparql_indexes']));
+        $this->indexes = array_combine($this->indexes, $this->indexes);
+
+        $this->initOptions();
+
+        // Checks are done during init and the index may be removed.
+        $defaultIndexes = $this->indexes;
+
+        if (isset($this->indexes['db'])) {
+            $this->initStoreArc2();
+        }
+
+        if (isset($this->indexes['turtle'])) {
+            $this->initStoreTriplestore();
+        }
+
         if (empty($this->indexes)) {
             $this->logger->warn(
                 'Sparql dataset "{dataset}": no index defined. Existing indexes are kept.', // @translate
@@ -206,60 +221,29 @@ class IndexTriplestore extends AbstractJob
             return;
         }
 
-        $this->initOptions();
+        $this->logger->notice(
+            'Sparql dataset "{dataset}": indexing formats: {formats}.', // @translate
+            ['dataset' => $this->datasetName, 'formats' => implode(', ', $this->indexes)]
+        );
 
-        if (in_array('turtle', $this->indexes)) {
-            $this->initStoreTriplestore();
+        $timeStart = microtime(true);
 
-            if (!$this->filepath) {
-                $this->logger->err(
-                    'Sparql dataset "{dataset}" ({format}): unable to index in triplestore.', // @translate
-                    ['dataset' => $this->datasetName, 'format' => 'turtle']
-                );
-            } else {
-                $this->logger->notice(
-                    'Sparql dataset "{dataset}" ({format}): start of indexing triplestore.', // @translate
-                    ['dataset' => $this->datasetName, 'format' => 'turtle']
-                );
+        $this->processindexes();
 
-                $timeStart = microtime(true);
+        $timeTotal = (int) (microtime(true) - $timeStart);
 
-                $this->processindex('turtle');
+        $this->logger->notice(
+            'Sparql dataset "{dataset}": end of indexing. {total} resources indexed ({total_errors} errors). Execution time: {duration} seconds.', // @translate
+            ['dataset' => $this->datasetName, 'total' => $this->totalResults, 'total_errors' => $this->totalErrors, 'duration' => $timeTotal]
+        );
 
-                $timeTotal = (int) (microtime(true) - $timeStart);
-
-                $this->logger->notice(
-                    'Sparql dataset "{dataset}" ({format}): end of indexing. {total} resources indexed ({total_errors} errors). Execution time: {duration} seconds.', // @translate
-                    ['dataset' => $this->datasetName, 'format' => 'db', 'total' => $this->totalResults, 'total_errors' => $this->totalErrors, 'duration' => $timeTotal]
-                );
-            }
-        }
-
-        if (in_array('arc2', $this->indexes)) {
-            $this->initStoreArc2();
-
-            if (!$this->storeArc2) {
-                $this->logger->err(
-                    'Sparql dataset "{dataset}" ({format}): unable to index in Arc2.', // @translate
-                    ['dataset' => $this->datasetName, 'format' => 'db']
-                );
-            } else {
-                $this->logger->notice(
-                    'Sparql dataset "{dataset}" ({format}): start of indexing in Arc2.', // @translate
-                    ['dataset' => $this->datasetName, 'format' => 'db']
-                );
-
-                $timeStart = microtime(true);
-
-                $this->processindex('db');
-
-                $timeTotal = (int) (microtime(true) - $timeStart);
-
-                $this->logger->notice(
-                    'Sparql dataset "{dataset}" ({format}): end of indexing in Arc2. Execution time: {duration} seconds.', // @translate
-                    ['dataset' => $this->datasetName, 'format' => 'db', 'duration' => $timeTotal]
-                );
-            }
+        $skippedIndexes = array_diff_key($defaultIndexes, $this->indexes);
+        if ($skippedIndexes) {
+            $this->logger->notice(
+                'Sparql dataset "{dataset}": skipped formats: {formats}.', // @translate
+                ['dataset' => $this->datasetName, 'formats' => implode(', ', $skippedIndexes)]
+            );
+            $this->job->setStatus(\Omeka\Entity\Job::STATUS_ERROR);
         }
     }
 
@@ -334,223 +318,6 @@ class IndexTriplestore extends AbstractJob
         }
 
         return $this;
-    }
-
-    /**
-     * Create the triplestore.
-     */
-    protected function processIndex(string $mode): self
-    {
-        // Step 1: adding vocabularies used in triplestore.
-
-        $output = '';
-        $base = '@prefix %1$s: <%2$s> .';
-        foreach ($this->contextShort as $prefix => $iri) {
-            $output .= sprintf($base, $prefix, $iri) . "\n";
-        }
-        $output .= "\n\n";
-
-        switch ($mode) {
-            case 'db':
-                try {
-                    $this->storeArc2->reset(true);
-                } catch (Exception $e) {
-                    $this->logger->err($e);
-                    return $this;
-                }
-                $errors = $this->storeArc2->getErrors();
-                if ($errors) {
-                    $this->logger->err(implode("\n", $errors));
-                    return $this;
-                }
-                break;
-
-            case 'turtle':
-            default:
-                file_put_contents($this->filepath, $output, LOCK_EX);
-                break;
-        }
-
-        // Step 2: adding item sets.
-
-        $queryVisibility = $this->resourcePublicOnly ? ['is_public' => true] : [];
-
-        if (in_array('item_sets', $this->resourceTypes)) {
-            $response = $this->api->search('item_sets', $queryVisibility, ['returnScalar' => 'id']);
-            $total = $response->getTotalResults();
-
-            $this->logger->info(
-                'Sparql dataset "{dataset}" ({format}): indexing {total} item sets.', // @translate
-                ['dataset' => $this->datasetName, 'format' => $mode, 'total' => $total]
-            );
-
-            $i = 0;
-            foreach ($response->getContent() as $id) {
-                /** @var \Omeka\Api\Representation\ItemSetRepresentation $itemSet */
-                $itemSet = $this->api->read('item_sets', ['id' => $id])->getContent();
-                $turtle = $this->resourceTurtle($itemSet);
-                $mode === 'db'
-                    ? $this->storeTurtleArc2($turtle, $itemSet)
-                    : $this->storeTurtleTriplestore($turtle);
-                ++$this->totalResults;
-                if (++$i % 100 === 0) {
-                    if ($this->shouldStop()) {
-                        $this->logger->warn(
-                            'Sparql dataset "{dataset}" ({format}): The job was stopped. Indexed {count}/{total} item sets.', // @translate
-                            ['dataset' => $this->datasetName, 'format' => $mode, 'count' => $i, 'total' => $total]
-                        );
-                        return $this;
-                    }
-                    $this->logger->info(
-                        'Sparql dataset "{dataset}" ({format}): indexed {count}/{total} item sets.', // @translate
-                        ['dataset' => $this->datasetName, 'format' => $mode, 'count' => $i, 'total' => $total]
-                    );
-                    $this->entityManager->clear();
-                }
-            }
-
-            $this->entityManager->clear();
-        }
-
-        // Step 3: adding items and attached media.
-
-        if (in_array('items', $this->resourceTypes)) {
-            $indexMedia = in_array('media', $this->resourceTypes);
-
-            $response = $this->api->search('items', $this->resourceQuery, ['returnScalar' => 'id']);
-            $total = $response->getTotalResults();
-
-            if ($indexMedia) {
-                /*
-                $ids = $response->getContent();
-                $totalMedias = $this->api->search('media', ['item_id' => $ids])->getTotalResults();
-                $this->logger->info(
-                    'Sparql dataset "{dataset}" ({format}): indexing {total} items and {total_medias} medias.', // @translate
-                    ['dataset' => $this->datasetName, 'format' => $mode, 'total' => $total, 'total_medias' => $totalMedias]
-                );
-                */
-                $this->logger->info(
-                    'Sparql dataset "{dataset}" ({format}): indexing {total} items and attached medias.', // @translate
-                    ['dataset' => $this->datasetName, 'format' => $mode, 'total' => $total]
-                );
-            } else {
-                $this->logger->info(
-                    'Sparql dataset "{dataset}" ({format}): indexing {total} items.', // @translate
-                    ['dataset' => $this->datasetName, 'format' => $mode, 'total' => $total]
-                );
-            }
-
-            $i = 0;
-            foreach ($response->getContent() as $id) {
-                /** @var \Omeka\Api\Representation\ItemRepresentation $item */
-                $item = $this->api->read('items', ['id' => $id])->getContent();
-                $turtle = $this->resourceTurtle($item);
-                $mode === 'db'
-                    ? $this->storeTurtleArc2($turtle, $item)
-                    : $this->storeTurtleTriplestore($turtle);
-                if ($indexMedia) {
-                    foreach ($item->media() as $media)  {
-                        if ($this->resourcePublicOnly && !$media->isPublic()) {
-                            continue;
-                        }
-                        $turtle = $this->resourceTurtle($media);
-                        $mode === 'db'
-                            ? $this->storeTurtleArc2($turtle, $media)
-                            : $this->storeTurtleTriplestore($turtle);
-                        ++$this->totalResults;
-                    }
-                }
-                ++$this->totalResults;
-                if (++$i % 100 === 0) {
-                    if ($this->shouldStop()) {
-                        $this->logger->warn(
-                            'Sparql dataset "{dataset}" ({format}): The job was stopped. Indexed {count}/{total} items.', // @translate
-                            ['dataset' => $this->datasetName, 'format' => $mode, 'count' => $i, 'total' => $total]
-                        );
-                        return $this;
-                    }
-                    $this->logger->info(
-                        'Sparql dataset "{dataset}" ({format}): indexed {count}/{total} items.', // @translate
-                        ['dataset' => $this->datasetName, 'format' => $mode, 'count' => $i, 'total' => $total]
-                    );
-                    $this->entityManager->clear();
-                }
-            }
-            $this->entityManager->clear();
-        }
-
-        return $this;
-    }
-
-    /**
-     * Get a single resource as turtle.
-     */
-    protected function resourceTurtle(AbstractResourceEntityRepresentation $resource): ?string
-    {
-        // Don't use jsonSerialize(), that serializes only first level.
-        $json = json_decode(json_encode($resource), true);
-
-        // Manage the special case of rdfs:label.
-        if ($this->rdfsLabel) {
-            $json[$this->rdfsLabel][] = $json['o:title'] ?? $resource->displayTitle();
-        }
-
-        // Don't store specific metadata.
-        $json = $this->propertyWhiteList
-            ? array_intersect_key($json, $this->propertyMeta + $this->propertyWhiteList)
-            : array_intersect_key($json, $this->propertyMeta + $this->properties);
-
-        if ($this->propertyBlackList) {
-            $json = array_diff_key($json, $this->propertyBlackList);
-        }
-
-        $skips = [
-            'html' => 'html',
-            'xml' => 'xml',
-        ];
-        if ($this->resourcePublicOnly
-            || $this->dataTypeWhiteList
-            || $this->dataTypeBlackList
-            || count(array_intersect_key($skips, $this->dataTypeBlackList)) !== count($skips)
-        ) {
-            foreach (array_keys(array_intersect_key($this->properties, $json)) as $property) {
-                foreach ($json[$property] as $key => $value) {
-                    if ($this->resourcePublicOnly && !$value['is_public']) {
-                        unset($json[$property][$key]);
-                        continue;
-                    }
-                    if ($this->dataTypeWhiteList && !isset($this->dataTypeWhiteList[$value['type']])) {
-                        unset($json[$property][$key]);
-                        continue;
-                    }
-                    if ($this->dataTypeBlackList && isset($this->dataTypeBlackList[$value['type']])) {
-                        unset($json[$property][$key]);
-                        continue;
-                    }
-                    if (in_array($value['type'], $skips)) {
-                        $json[$property][$key]['type'] = 'literal';
-                    }
-                }
-            }
-        }
-
-        $id = $resource->apiUrl();
-        $json['@context'] = $this->context;
-
-        $graph = new Graph($id);
-        try {
-            $graph->parse(json_encode($json), 'jsonld', $id);
-        } catch (Exception $e) {
-            $this->logger->err(
-                'Sparql dataset "{dataset}", {resource_type} #{resource_id}: {message}', // @translate
-                ['dataset' => $this->datasetName, 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id(), 'message' => $e->getMessage()]
-            );
-            ++$this->totalErrors;
-            return null;
-        }
-
-        // Serialize the json as turtle.
-        return $graph->serialise('turtle');
     }
 
     /**
@@ -673,15 +440,6 @@ SQL;
         return $this;
     }
 
-    protected function initStoreTriplestore(): self
-    {
-        // Prepare output path.
-        $basePath = $this->config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $this->filepath = $basePath . '/triplestore/' . $this->datasetName . '.ttl';
-        file_put_contents($this->filepath, '');
-        return $this;
-    }
-
     /**
      * Index the triplestore in the ARC2 local database.
      *
@@ -692,13 +450,13 @@ SQL;
     {
         /** @var \ARC2_TurtleParser $parser */
         /*
-         $parser = ARC2::getRDFParser();
-         $parser->parse($this->filepath);
-         $triples = $parser->getTriples();
+        $parser = ARC2::getRDFParser();
+        $parser->parse($this->filepath);
+        $triples = $parser->getTriples();
          */
 
-        $writeKey = $this->settings->get('sparql_arc2_write_key') ?: '';
-        $limitPerPage = (int) $this->settings->get('sparql_limit_per_page') ?: (int) $this->config['sparql']['config']['sparql_limit_per_page'];
+        $writeKey = $this->getArg('arc2_write_key', $this->settings->get('sparql_arc2_write_key', $this->config['sparql']['config']['sparql_arc2_write_key']));
+        $limitPerPage = $this->getArg('limit_per_page', $this->settings->get('sparql_limit_per_page', $this->config['sparql']['config']['sparql_limit_per_page']));
 
         // Endpoint configuration.
         $db = $this->connection->getParams();
@@ -752,50 +510,338 @@ SQL;
             if (!$store->isSetUp()) {
                 $store->setUp();
             }
+            $errors = $store->getErrors();
+            if ($errors) {
+                throw new Exception(implode("\n", $errors));
+            }
             $this->storeArc2 = $store;
         } catch (Exception $e) {
-            $this->logger->err($e);
+            unset($this->indexes['db']);
+            $this->logger->err(
+                'Sparql dataset "{dataset}" ({format}): {message}', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'db', 'message' => $e->getMessage()]
+            );
             $this->storeArc2 = null;
         }
 
         return $this;
     }
 
-    protected function storeTurtleTriplestore(?string $turtle, ?AbstractResourceEntityRepresentation $resource = null): self
+    protected function initStoreTriplestore(): self
     {
-        if (!$turtle) {
-            return $this;
+        // Prepare output path.
+        $basePath = $this->config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $this->filepath = $basePath . '/triplestore/' . $this->datasetName . '.ttl';
+        file_put_contents($this->filepath, '');
+        return $this;
+    }
+
+    /**
+     * Index the triplestores.
+     */
+    protected function processIndexes(): self
+    {
+        // Step 1: init indexes and add vocabularies used in triplestore.
+
+        $this->prepareDataset();
+
+        $queryVisibility = $this->resourcePublicOnly ? ['is_public' => true] : [];
+
+        // Step 2: add item sets.
+
+        if (in_array('item_sets', $this->resourceTypes)) {
+            $response = $this->api->search('item_sets', $queryVisibility, ['returnScalar' => 'id']);
+            $total = $response->getTotalResults();
+
+            $this->logger->info(
+                'Sparql dataset "{dataset}": indexing {total} item sets.', // @translate
+                ['dataset' => $this->datasetName, 'total' => $total]
+            );
+
+            $i = 0;
+            foreach ($response->getContent() as $id) {
+                /** @var \Omeka\Api\Representation\ItemSetRepresentation $itemSet */
+                $itemSet = $this->api->read('item_sets', ['id' => $id])->getContent();
+                $turtle = $this->resourceTurtle($itemSet);
+                $this->storeTurtle($turtle, $itemSet);
+                ++$this->totalResults;
+                if (++$i % 100 === 0) {
+                    $this->entityManager->clear();
+                    if ($this->shouldStop()) {
+                        $this->logger->warn(
+                            'Sparql dataset "{dataset}": The job was stopped. Indexed {count}/{total} item sets.', // @translate
+                            ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
+                        );
+                        return $this;
+                    }
+                    $this->logger->info(
+                        'Sparql dataset "{dataset}": indexed {count}/{total} item sets.', // @translate
+                        ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
+                    );
+                }
+            }
+
+            $this->entityManager->clear();
         }
 
-        $turtle = mb_substr($turtle, mb_strpos($turtle, "\n\n") + 2);
-        file_put_contents($this->filepath, $turtle . "\n", FILE_APPEND | LOCK_EX);
+        // Step 3: adding items and attached media.
+
+        if (in_array('items', $this->resourceTypes)) {
+            $response = $this->api->search('items', $this->resourceQuery, ['returnScalar' => 'id']);
+            $total = $response->getTotalResults();
+
+            $indexMedia = in_array('media', $this->resourceTypes);
+            if ($indexMedia) {
+                /*
+                $ids = $response->getContent();
+                $totalMedias = $this->api->search('media', ['item_id' => $ids])->getTotalResults();
+                $this->logger->info(
+                    'Sparql dataset "{dataset}": indexing {total} items and {total_medias} medias.', // @translate
+                    ['dataset' => $this->datasetName, 'total' => $total, 'total_medias' => $totalMedias]
+                );
+                 */
+                $this->logger->info(
+                    'Sparql dataset "{dataset}": indexing {total} items and attached medias.', // @translate
+                    ['dataset' => $this->datasetName, 'total' => $total]
+                );
+            } else {
+                $this->logger->info(
+                    'Sparql dataset "{dataset}": indexing {total} items.', // @translate
+                    ['dataset' => $this->datasetName, 'total' => $total]
+                );
+            }
+
+            $i = 0;
+            foreach ($response->getContent() as $id) {
+                /** @var \Omeka\Api\Representation\ItemRepresentation $item */
+                $item = $this->api->read('items', ['id' => $id])->getContent();
+                $turtle = $this->resourceTurtle($item);
+                $success = $this->storeTurtle($turtle, $item);
+                ++$this->totalResults;
+                if ($success && $indexMedia) {
+                    foreach ($item->media() as $media) {
+                        if ($this->resourcePublicOnly && !$media->isPublic()) {
+                            continue;
+                        }
+                        $turtle = $this->resourceTurtle($media);
+                        $this->storeTurtle($turtle, $media);
+                        ++$this->totalResults;
+                    }
+                }
+                if (++$i % 100 === 0) {
+                    $this->entityManager->clear();
+                    if ($this->shouldStop()) {
+                        $this->logger->warn(
+                            'Sparql dataset "{dataset}": The job was stopped. Indexed {count}/{total} items.', // @translate
+                            ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
+                        );
+                        return $this;
+                    }
+                    $this->logger->info(
+                        'Sparql dataset "{dataset}": indexed {count}/{total} items.', // @translate
+                        ['dataset' => $this->datasetName, 'count' => $i, 'total' => $total]
+                    );
+                }
+            }
+            $this->entityManager->clear();
+        }
 
         return $this;
     }
 
-    protected function storeTurtleArc2(?string $turtle, ?AbstractResourceEntityRepresentation $resource = null): self
+    /**
+     * Get a single resource as turtle.
+     */
+    protected function resourceTurtle(AbstractResourceEntityRepresentation $resource): ?string
     {
-        if (!$turtle) {
-            return $this;
+        // Don't use jsonSerialize(), that serializes only first level.
+        $json = json_decode(json_encode($resource), true);
+
+        // Manage the special case of rdfs:label.
+        if ($this->rdfsLabel) {
+            $json[$this->rdfsLabel][] = $json['o:title'] ?? $resource->displayTitle();
         }
 
+        // Don't store specific metadata.
+        $json = $this->propertyWhiteList
+            ? array_intersect_key($json, $this->propertyMeta + $this->propertyWhiteList)
+            : array_intersect_key($json, $this->propertyMeta + $this->properties);
+
+        if ($this->propertyBlackList) {
+            $json = array_diff_key($json, $this->propertyBlackList);
+        }
+
+        $skips = [
+            'html' => 'html',
+            'xml' => 'xml',
+        ];
+        if ($this->resourcePublicOnly
+            || $this->dataTypeWhiteList
+            || $this->dataTypeBlackList
+            || count(array_intersect_key($skips, $this->dataTypeBlackList)) !== count($skips)
+        ) {
+            foreach (array_keys(array_intersect_key($this->properties, $json)) as $property) {
+                foreach ($json[$property] as $key => $value) {
+                    if ($this->resourcePublicOnly && !$value['is_public']) {
+                        unset($json[$property][$key]);
+                        continue;
+                    }
+                    if ($this->dataTypeWhiteList && !isset($this->dataTypeWhiteList[$value['type']])) {
+                        unset($json[$property][$key]);
+                        continue;
+                    }
+                    if ($this->dataTypeBlackList && isset($this->dataTypeBlackList[$value['type']])) {
+                        unset($json[$property][$key]);
+                        continue;
+                    }
+                    if (in_array($value['type'], $skips)) {
+                        $json[$property][$key]['type'] = 'literal';
+                    }
+                }
+            }
+        }
+
+        $id = $resource->apiUrl();
+        $json['@context'] = $this->context;
+
+        $graph = new Graph($id);
+        try {
+            $graph->parse(json_encode($json), 'jsonld', $id);
+        } catch (Exception $e) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}", {resource_type} #{resource_id}: {message}', // @translate
+                ['dataset' => $this->datasetName, 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id(), 'message' => $e->getMessage()]
+            );
+            ++$this->totalErrors;
+            return null;
+        }
+
+        // Serialize the json as turtle.
+        $turtle = $graph->serialise('turtle');
+
+        // Check the turtle created via easyrdf via arc2 in all cases to avoid
+        // issues later and to avoid to create a bad triplestore.
+        /** @var \Arc2_TurtleParser $parser */
+        $parser = ARC2::getTurtleParser();
+        $parser->resetErrors();
+        try {
+            $parser->parse($id, $turtle);
+            $errors = $parser->getErrors();
+            if ($errors) {
+                throw new Exception(implode("\n", $errors));
+            }
+        } catch (Exception $e) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}", {resource_type} #{resource_id}: {message}', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'db', 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id(), 'message' => $e->getMessage()]
+            );
+            return null;
+        }
+
+        return $turtle;
+    }
+
+    protected function prepareDataset(): self
+    {
+        foreach ($this->indexes as $index) switch ($index) {
+            case 'db':
+                $this->prepareDatasetArc2();
+                break;
+            case 'turtle':
+                $this->prepareDatasetTriplestore();
+                break;
+            default:
+                break;
+        }
+        return $this;
+    }
+
+    protected function prepareDatasetArc2(): self
+    {
+        try {
+            $this->storeArc2->reset(true);
+            $errors = $this->storeArc2->getErrors();
+            if ($errors) {
+                throw new Exception(implode("\n", $errors));
+            }
+        } catch (Exception $e) {
+            unset($this->indexes['db']);
+            $this->logger->err(
+                'Sparql dataset "{dataset}" ({format}): {message}', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'db', 'message' => $e->getMessage()]
+            );
+        }
+        return $this;
+    }
+
+    protected function prepareDatasetTriplestore(): self
+    {
+        $output = '';
+        $base = '@prefix %1$s: <%2$s> .';
+        foreach ($this->contextShort as $prefix => $iri) {
+            $output .= sprintf($base, $prefix, $iri) . "\n";
+        }
+        $output .= "\n\n";
+        file_put_contents($this->filepath, $output, LOCK_EX);
+        return $this;
+    }
+
+    protected function storeTurtle(?string $turtle, AbstractResourceEntityRepresentation $resource): bool
+    {
+        if (!$turtle) {
+            return false;
+        }
+        foreach ($this->indexes as $index) {
+            $success = false;
+            switch ($index) {
+                case 'db':
+                    $success = $this->storeTurtleArc2($turtle, $resource);
+                    break;
+                case 'turtle':
+                    $success = $this->storeTurtleTriplestore($turtle, $resource);
+                    break;
+                default:
+                    break;
+            }
+            if (!$success) {
+                ++$this->totalErrors;
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected function storeTurtleArc2(string $turtle, AbstractResourceEntityRepresentation $resource): bool
+    {
         try {
             // $this->storeArc2->query("LOAD <file://{$this->filepath}>");
             $this->storeArc2->insert($turtle, $resource->apiUrl());
+            $errors = $this->storeArc2->getErrors();
+            if ($errors) {
+                throw new Exception(implode("\n", $errors));
+            }
         } catch (Exception $e) {
-            $this->logger->err($e);
-            return $this;
-        }
-
-        $errors = $this->storeArc2->getErrors();
-        if ($errors) {
-            $this->logger->err(
+            $this->logger->warn(
                 'Sparql dataset "{dataset}" ({format}), {resource_type} #{resource_id}: {message}', // @translate
-                ['dataset' => $this->datasetName, 'format' => 'db', 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id(), 'mesage' => implode("\n", $errors)]
+                ['dataset' => $this->datasetName, 'format' => 'db', 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id(), 'message' => $e->getMessage()]
             );
+            return false;
         }
+        return true;
+    }
 
-        return $this;
+    protected function storeTurtleTriplestore(string $turtle, AbstractResourceEntityRepresentation $resource): bool
+    {
+        $turtle = mb_substr($turtle, mb_strpos($turtle, "\n\n") + 2);
+        $result = file_put_contents($this->filepath, $turtle . "\n", FILE_APPEND | LOCK_EX);
+        if ($result === false) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}" ({format}), {resource_type} #{resource_id}: unable to store data.', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'db', 'resource_type' => $resource->resourceName(), 'resource_id' => $resource->id()]
+            );
+            return false;
+        }
+        return true;
     }
 
     /**

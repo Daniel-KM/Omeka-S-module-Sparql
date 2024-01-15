@@ -134,6 +134,8 @@ class Module extends AbstractModule
             'property_blacklist' => $settings->get('sparql_property_blacklist', $configModule['sparql_property_blacklist']),
             'datatype_whitelist' => $settings->get('sparql_datatype_whitelist', $configModule['sparql_datatype_whitelist']),
             'datatype_blacklist' => $settings->get('sparql_datatype_blacklist', $configModule['sparql_datatype_blacklist']),
+            'arc2_write_key' => $settings->get('sparql_arc2_write_key', $configModule['sparql_arc2_write_key']),
+            'limit_per_page' => $settings->get('sparql_limit_per_page', $configModule['sparql_limit_per_page']),
             'indexes' => $settings->get('sparql_indexes', $configModule['sparql_indexes']),
         ];
 

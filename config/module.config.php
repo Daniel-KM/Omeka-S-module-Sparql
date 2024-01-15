@@ -78,9 +78,10 @@ return [
                 'html',
                 'xml',
             ],
+            // Don't set any indexes to let user choose internal or external server.
             'sparql_indexes' => [
+                // 'db',
                 // 'turtle',
-                // 'arc2',
                 // 'fuseki',
             ],
             // TODO Manage api credentials for arc2.
