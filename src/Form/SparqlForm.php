@@ -28,6 +28,17 @@ class SparqlForm extends Form
                 ],
             ])
             ->add([
+                'name' => 'prepend_prefixes',
+                'type' => CommonElement\OptionalCheckbox::class,
+                'options' => [
+                    'label' => 'Prepend prefixes', // @translate
+                    // Info: the standard prefixes are always included.
+                ],
+                'attributes' => [
+                    'id' => 'prepend_prefixes',
+                ],
+            ])
+            ->add([
                 'name' => 'format',
                 'type' => CommonElement\OptionalRadio::class,
                 'options' => [

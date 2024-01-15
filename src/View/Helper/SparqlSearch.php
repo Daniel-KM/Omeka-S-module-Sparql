@@ -214,6 +214,7 @@ class SparqlSearch extends AbstractHelper
         $result = null;
         $format = null;
         $namespaces = $this->prepareNamespaces();
+        $includePrefixes = false;
         $errorMessage = null;
 
         // Allow query via post and get for end user and view simplicity.
@@ -233,25 +234,35 @@ class SparqlSearch extends AbstractHelper
                     // TODO Check prepending prefixes: arc2 should work without them.
                     // Prepend all prefixes: only common ones are set.
                     $prefixes = '';
+                    $includePrefixes = !empty($data['prepend_prefixes']);
                     foreach ($namespaces as $prefix => $iri) {
                         // Only the addition of prefixes in the query works.
                         $triplestore->setPrefix($prefix, $iri);
-                        $prefixes .= "PREFIX $prefix: <$iri>\n";
+                        if ($includePrefixes) {
+                            $prefixes .= "PREFIX $prefix: <$iri>\n";
+                        }
+                    }
+                    // For better protocol handling, remove key submit.
+                    // The key format is not used here.
+                    unset(
+                        $_GET['submit'],
+                        $_POST['submit'],
+                        $_GET['prepend_prefixes'],
+                        $_POST['prepend_prefixes']
+                    );
+                    if ($includePrefixes) {
+                        if (isset($_GET['query'])) {
+                            $_GET['query'] = $prefixes . $_GET['query'];
+                        }
+                        if (isset($_POST['query'])) {
+                            $_GET['query'] = $prefixes . $_POST['query'];
+                        }
                     }
                     try {
                         // Deprecated in many places: passing null to preg_match in ARC2_Store line 304
                         $errorReporting = error_reporting();
                         error_reporting($errorReporting & ~E_DEPRECATED);
                         if ($triplestore instanceof ARC2_StoreEndpoint) {
-                            // For better protocol handling, remove key submit.
-                            // The key format is not used here.
-                            unset($_GET['submit'], $_POST['submit']);
-                            if (isset($_GET['query'])) {
-                                $_GET['query'] = $prefixes . $_GET['query'];
-                            }
-                            if (isset($_POST['query'])) {
-                                $_GET['query'] = $prefixes . $_POST['query'];
-                            }
                             $triplestore->handleRequest();
                             $result = $triplestore->getResult();
                         } else {

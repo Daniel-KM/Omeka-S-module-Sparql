@@ -10,8 +10,12 @@
         width: auto;
     }
 
-    body.sparql.minimal #page-actions button#submit {
+    body.minimal.sparql #page-actions button#submit {
         background-color: #fff;
+    }
+    body.minimal.sparql .inputs input {
+        width: initial;
+        vertical-align: initial;
     }
 
     .namespaces label {
