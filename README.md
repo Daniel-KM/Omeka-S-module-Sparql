@@ -5,23 +5,24 @@ Sparql (module for Omeka S)
 > are available on [GitLab], which seems to respect users and privacy better
 > than the previous repository.__
 
-[Sparql] is a module for [Omeka S] that create a triplestore and a sparql server
-that allows to query json-ld Omeka S database via the [sparql language]. The
-query can be built via a form in any page or via the endpoint, compliant with
-the [sparql protocol version 1.0] and partially version 1.1.
+[Sparql] is a module for [Omeka S] that creates a triplestore and a sparql
+server that allows to query json-ld Omeka S database via the [sparql language].
+The query can be built via a form in any page or via the endpoint, compliant
+with the [sparql protocol version 1.0] and partially version 1.1.
 
 The main interest of a sparql search against api or sql search is that it is a
 much more global search: requests are not limited to the database, but to all
-the linked data. So this a powerful search tool useful when you have many
-relations and normalized data (dates, people, subjects, locations, etc.), in
-particular via the module [Value Suggest] and values that uses common ontologies
-with right precise usage of each properties and classes. If you have custom
-ontologies, publish them and take them stable to allow richer results.
+the linked data, that can be federated. So this a powerful search tool useful
+when you have many relations and normalized data (dates, people, subjects,
+locations, etc.), in particular via the module [Value Suggest] and values that
+uses common ontologies with right precise usage of each properties and classes.
+If you have custom ontologies, publish them and take them stable to allow richer
+results.
 
 Furthermore, results may be a list of data, but sparql graphs too.
 
 **WARNING**: This is a work in progress and the [sparql protocol version 1.1] is
-not fully implemented yet.
+not fully implemented yet when using internal sparql endpoint.
 
 For a big base or full support of the sparql specifications, in particular the
 [sparql protocol version 1.1], it is recommended to use an external sparql
@@ -87,6 +88,17 @@ To fix Amazon cors issues, see the [aws documentation].
 Usage
 -----
 
+### Configuration
+
+To be able to query the endpoint, it should be indexed with the internal sparql
+endpoint or by an external sparql server.
+
+If you want to use the internal server and an external server, they should have
+a different url. The internal server may be available through site pages anyway.
+
+When Fuseki is installed locally, the url to index may be "http://localhost/sparql"
+and the external endpoint may be "http://example.org/sparql/triplestore".
+
 ### Indexation
 
 Like any other search engines, the module requires to index data in the server.
@@ -131,6 +143,12 @@ if you need them (standalone service, docker, tomcat, jetty, remotely, etc.).
 See below too for the command line (wrapper to jar) that can be used without
 configuration for testing purposes.
 
+Logs are managed by syslog by default, or in /etc/fuseki/logs/.
+
+**IMPORTANT**: The admin url of fuseki web app is like "http://example.org/sparql/$/datasets/triplestore/",
+but the endpoint to query is like "http://example.org/sparql/triplestore/".
+Furthermore, when a proxy is used, it may be internally like "http://localhost/triplestore/".
+
 _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
 "declarations".
 
@@ -151,12 +169,12 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   # If the certificate is obsolete on Apache server, add --no-check-certificate.
   # To install another version, just change all next version numbers below.
   cd /opt
-  sudo wget https://dlcdn.apache.org/jena/binaries/apache-jena-fuseki-4.9.0.tar.gz
-  sudo tar -xvf /opt/apache-jena-fuseki-4.9.0.tar.gz
+  sudo wget https://dlcdn.apache.org/jena/binaries/apache-jena-fuseki-4.10.0.tar.gz
+  sudo tar -xvf /opt/apache-jena-fuseki-4.10.0.tar.gz
   # Add a symlink to simplify long term management and because /opt/fuseki is used the default in the config.
-  sudo ln -s /opt/apache-jena-fuseki-4.9.0 /opt/fuseki
+  sudo ln -s /opt/apache-jena-fuseki-4.10.0 /opt/fuseki
   # Clean the sources if wanted.
-  sudo rm apache-jena-fuseki-4.9.0.tar.gz
+  sudo rm apache-jena-fuseki-4.10.0.tar.gz
   ```
 
 2. Information
@@ -168,8 +186,8 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   * FUSEKI_BASE is the dir "/run" inside the current directory. When running
     fuseki manually from command line, it is recommended to create a dir like ~/fuseki
     (`mkdir ~/fuseki`) and to go inside it (`cd ~/fuseki`) before running fuseki.
-    If you use the default config of the systemd service (see below), the base is
-    /etc/fuseki.
+    If you use the default config of the systemd service (see below), the base
+    is /etc/fuseki.
 
 3. For quick test on command line
 
@@ -182,7 +200,8 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   # Of course, the Omeka S rdf database should have been indexed via the module.
   TSDB="/var/www/html/omekas/files/triplestore/triplestore.ttl"
   # The name of the triple store database, that is used as base path by fuseki.
-  TSPATHNAME="/omekas"
+  # Here, the name is sparql, but it may be /omekas or anything else.
+  TSPATHNAME="/sparql"
   /opt/fuseki/fuseki-server --help
   /opt/fuseki/fuseki-server --file="$TSDB" $TSPATHNAME
   ```
@@ -190,17 +209,19 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
 
 ### For production environment
 
-  By default, the database exposed is read only, so there is no security risk to
-  let it public than to let the Omeka S endpoint /api open. Of course, you
-  should not index private resources in that case, because there is no
-  authorization checks. See below for such a security.
+  **WARNING**: By default, the database exposed is fully accessible, so it is
+  important to protect it. Furthermore, you should not index private resources
+  in that case, because there is no authorization checks by default. See below
+  for such a security.
 
   Nevertheless, Fuseki is fully available via localhost (with a password if set),
   so the triplestore can be managed dynamically via the module, while secure for
   external access.
 
 1. Download and install Fuseki 2
-  See points 1 and 2 from the quick start above.
+
+  See points 1 and 2 from the quick start above and stop or kill the server
+  started in 3.
 
 2. Prepare the configuration of Omeka S as source for Fuseki
 
@@ -211,7 +232,8 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   - `$FUSEKI_BASE/config.ttl`: server wide configuration
   - `$FUSEKI_BASE/configuration/{tspathname.ttl}`: dataset specific configuration
 
-  // TODO Include default config of Fuseki.
+  TODO Include default config of Fuseki.
+
   The default omeka s file is included in the module [data/fusuki/config.ttl],
   so you just have to copy it and to change the path to the omeka files/triplestore
   inside it. It allows to publish one dataset as read-only. See the [config documentation]
@@ -235,14 +257,7 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   systemd anyway) or directly as a systemd service (recommended and more
   secure).
 
-  1. Service for init.d (deprecated)
-
-    ```sh
-    sudo cp /opt/apache-jena-fuseki/fuseki /etc/init.d/
-    sudo chmod +x /etc/init.d/fuseki
-    ```
-
-  2. Service for systemd
+  4.1. Service for systemd
 
     ```sh
     sudo cp /opt/fuseki/fuseki.service /etc/systemd/system/
@@ -256,6 +271,13 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
     # or store the triplestore somewhere else. A read only access is enough.
     # You should take care of parents too.
     sudo chmod -R o+rX /var/www/html/omekas/files/triplestore/
+    ```
+
+  4.2. Service for init.d (deprecated)
+
+    ```sh
+    sudo cp /opt/apache-jena-fuseki/fuseki /etc/init.d/
+    sudo chmod +x /etc/init.d/fuseki
     ```
 
 5. Enable the service
@@ -287,7 +309,11 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   ```apache
   <VirtualHost *:443>
       ServerName example.org
+      # Other configs.
       …
+
+      # Reverse proxy for Fuseki.
+      # In lines below, replace "/sparql" by the path you want.
       ProxyPreserveHost On
       ProxyRequests Off
       <Proxy *>
@@ -303,9 +329,22 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   Here, Fuseki should be available through standard https port 443 without ssl
   on the server. See another similar configuration for [tomcat here].
 
+  For the web app, when the install use a path inside the main domain, you have
+  to make the static files in /opt/fuseki/webapp/static available from the
+  server too, so copy them or create a link:
+
+  ```sh
+  # TODO Find a better way via config.
+  sudo ln -s /opt/fuseki/webapp/static /var/www/html/static
+  ```
+
   Then enable this new config:
 
   ```sh
+  # Select apache modules you need according to your config (http and/or fgci).
+  sudo a2enmod proxy
+  sudo a2enmod proxy_http
+  sudo a2enmod proxy_fcgi
   sudo a2ensite mydomain
   sudo systemctl restart apache2
   ```
@@ -322,8 +361,7 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   starting with `/$/` are admin functions.
 
   For fine data access control, see [Fuseki documentation]. Of course, it is
-  useless if you publish to protect data if only public data are published as
-  read-only, that is the default.
+  useless if only public data are published as read-only.
 
   For more infos, check the documentation about [Fuseki security].
 
@@ -332,9 +370,9 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
   After modifying config or security settings, you need to restart the service.
 
   ```sh
-  # Auto run on boot.
   sudo systemctl restart fuseki
   ```
+
 
 TODO
 ----
@@ -348,15 +386,17 @@ TODO
 - [ ] Include sparql graph by default.
 - [ ] Exploration tools of Nicolas Lasolle, that are adapted to Omeka S.
 - [ ] Other visualization and exploration tools (see Nicolas Lasolle [abstract written for a congress]).
-- [ ] Triple stores by site or via queries.
-- [ ] Manage multiple triplestores.
 - [ ] Query on private resources.
 - [ ] Use api credentials for sparql queries.
 - [ ] Make a cron task (module [Easy Admin])?
 - [ ] Integrate with module [Advanced Search] for indexation.
 - [ ] Add button for indexing in module Advanced Search.
+- [ ] Triple stores by site or via queries.
+- [ ] Manage multiple triplestores.
 - [ ] Integrate full text search with lucene (see https://jena.apache.org/documentation/query/text-query.html)
+- [ ] Use the external engine with the simple form (require to manage spaql response).
 - [x] Readme for [Apache Jena Fuseki].
+- [ ] Index directly from omeka json-ld endpoints /api/xxx into Fuseki.
 - [ ] Create a Fuseki TDB2 template adapted to Omeka.
 - [ ] Include default config for Fuseki adapted to Omeka S.
 - [ ] Support create and update of resources through sparql and api.
@@ -431,8 +471,8 @@ Omeka, so conversion are automatically done.
 
 * Funding
 
-This module was developed for the future digital library [Manioc] of the Université
-des Antilles et de la Guyane, currently managed via Greenstone.
+This module was developed for the future digital library [Manioc] of the
+Université des Antilles et de la Guyane, currently managed via Greenstone.
 
 
 [Sparql]: https://gitlab.com/Daniel-KM/Omeka-S-module-Sparql

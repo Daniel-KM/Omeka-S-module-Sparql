@@ -74,7 +74,7 @@ class ConfigForm extends Form
                 'name' => 'sparql_property_whitelist',
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [
-                    'label' => 'Limit indexation to specific properties (white list)', // @translate
+                    'label' => 'Limit indexation to specific properties', // @translate
                     'term_as_value' => true,
                     'empty_option' => '',
                 ],
@@ -89,7 +89,7 @@ class ConfigForm extends Form
                 'name' => 'sparql_property_blacklist',
                 'type' => OmekaElement\PropertySelect::class,
                 'options' => [
-                    'label' => 'Skip indexation for specific properties (black list)', // @translate
+                    'label' => 'Skip indexation for specific properties', // @translate
                     'term_as_value' => true,
                     'empty_option' => '',
                 ],
@@ -104,7 +104,7 @@ class ConfigForm extends Form
                 'name' => 'sparql_datatype_whitelist',
                 'type' => CommonElement\DataTypeSelect::class,
                 'options' => [
-                    'label' => 'Limit indexation to specific data types (white list)', // @translate
+                    'label' => 'Limit indexation to specific data types', // @translate
                     'empty_option' => '',
                 ],
                 'attributes' => [
@@ -118,7 +118,7 @@ class ConfigForm extends Form
                 'name' => 'sparql_datatype_blacklist',
                 'type' => CommonElement\DataTypeSelect::class,
                 'options' => [
-                    'label' => 'Skip indexation for specific data types (black list)', // @translate
+                    'label' => 'Skip indexation for specific data types', // @translate
                     'empty_option' => '',
                 ],
                 'attributes' => [
@@ -226,6 +226,7 @@ class ConfigForm extends Form
                 'type' => Element\Radio::class,
                 'options' => [
                     'label' => 'Endpoint', // @translate
+                    'info' => 'When using yasgui, clear the cache of the browser after modifying these options.', // @translate
                     'value_options' => [
                         'auto' => 'Automatic (external if any, else internal if any)', // @translate
                         'none' => 'None', // @translate
@@ -243,7 +244,8 @@ class ConfigForm extends Form
                 'name' => 'sparql_endpoint_external',
                 'type' => Element\Text::class,
                 'options' => [
-                    'label' => 'External endpoint (option above)', // @translate
+                    'label' => 'External endpoint', // @translate
+                    'info' => 'When Fuseki is installed locally, the url to index may be "http://localhost/sparql" and the external endpoint may be "http://example.org/sparql/triplestore".', // @translate
                 ],
                 'attributes' => [
                     'id' => 'sparql_endpoint_external',

@@ -27,7 +27,7 @@ class SparqlFieldset extends Fieldset
                 'options' => [
                     'label' => 'Interface', // @translate
                     'value_options' => [
-                        'default' => 'Simple', // @translate
+                        'default' => 'Simple (internal engine)', // @translate
                         'yasgui' => 'Yasgui', // @translate
                     ],
                 ],
