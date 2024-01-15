@@ -70,13 +70,11 @@ class Module extends AbstractModule
         }
     }
 
-    protected function postUninstall(): void
+    protected function postInstall(): void
     {
-        $services = $this->getServiceLocator();
-        $config = $services->get('Config');
-        $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
-        $dirPath = $basePath . '/encyclopedia';
-        $this->rmDir($dirPath);
+        $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
+        $urlPlugin = $plugins->get('url');
+        $messenger = $plugins->get('messenger');
 
         if ($this->isModuleActive('DataTypeGeometry')
             && !$this->isModuleVersionAtLeast('DataTypeGeometry', '3.4.4')
@@ -84,9 +82,24 @@ class Module extends AbstractModule
             $message = new PsrMessage(
                 'The module DataTypeGeometry should be at least version 3.4.4 to index geographic and geometric values.', // @translate
             );
-            $messenger = $this->services->get('ControllerPluginManager')->get('messenger');
             $messenger->addWarning($message);
         }
+
+        $message = new PsrMessage(
+            'You should index your data first for the internal sparql server or for an external one. The internal one is available at {link} and a form can be anywhere via the site page block "sparql".', // @translate
+            ['link' => $urlPlugin->fromRoute('sparql')]
+        );
+        $message->setEscapeHtml(false);
+        $messenger->addSuccess($message);
+    }
+
+    protected function postUninstall(): void
+    {
+        $services = $this->getServiceLocator();
+        $config = $services->get('Config');
+        $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
+        $dirPath = $basePath . '/triplestore';
+        $this->rmDir($dirPath);
     }
 
     public function handleConfigForm(AbstractController $controller)
