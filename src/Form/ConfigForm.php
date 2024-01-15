@@ -206,8 +206,9 @@ class ConfigForm extends Form
                     'label' => 'Index in sparql engine', // @translate
                     'value_options' => [
                         'db' => 'Internal database (used for the internal sparql endpoint)', // @translate
-                        'fuseki' => 'Fuseki (with configuration above)', // @translate
-                        'turtle' => 'Triplestore (turtle file, used to index a third party sparql server)', // @translate
+                        'fuseki' => 'Fuseki (by resource)', // @translate
+                        'fuseki_file' => 'Fuseki (in bulk via file)', // @translate
+                        'turtle' => 'Triplestore (turtle file, used to index in bulk any third party sparql server)', // @translate
                     ],
                 ],
                 'attributes' => [

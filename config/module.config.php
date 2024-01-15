@@ -92,6 +92,7 @@ return [
             'sparql_indexes' => [
                 // 'db',
                 // 'fuseki',
+                // 'fuseki_file',
                 // 'turtle',
             ],
             // TODO Manage api credentials for arc2.

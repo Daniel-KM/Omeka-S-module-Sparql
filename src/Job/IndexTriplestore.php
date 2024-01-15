@@ -232,6 +232,17 @@ class IndexTriplestore extends AbstractJob
         $this->indexes = $this->getArg('indexes', $this->settings->get('sparql_indexes', $this->config['sparql']['config']['sparql_indexes']));
         $this->indexes = array_combine($this->indexes, $this->indexes);
 
+        $indexFusekiFromFile = isset($this->indexes['fuseki_file']);
+
+        if (isset($this->indexes['fuseki']) && isset($this->indexes['fuseki_file'])) {
+            unset($this->indexes['fuseki_file']);
+            $indexFusekiFromFile = false;
+            $this->logger->warn(
+                'Sparql dataset "{dataset}": it is useless to index fuseki by resource and by file at the same time. The latter is skipped.', // @translate
+                ['dataset' => $this->datasetName]
+            );
+        }
+
         $this->initOptions();
 
         // Step 1: init triplestores.
@@ -260,7 +271,19 @@ class IndexTriplestore extends AbstractJob
         $this->prepareDataset();
 
         // Step 3: fill resources.
-        $this->processIndexes();
+        if ($indexFusekiFromFile) {
+            unset($this->indexes['fuseki_file']);
+        }
+
+        if ($this->indexes) {
+            $this->processIndexes();
+        }
+
+        // Step 4: fill indexes from triplestore file.
+        if ($indexFusekiFromFile) {
+            $this->indexes['fuseki_file'] = 'fuseki_file';
+            $this->storeTurtleFusekiFromFile();
+        }
 
         $timeTotal = (int) (microtime(true) - $timeStart);
 
@@ -514,6 +537,7 @@ SQL;
                 $this->initStoreArc2();
                 break;
             case 'fuseki':
+            case 'fuseki_file':
                 $this->initStoreFuseki();
                 break;
             case 'turtle':
@@ -618,6 +642,7 @@ SQL;
     protected function initStoreFuseki(): self
     {
         $this->fusekiEndpoint = $this->getArg('fuseki_endpoint', $this->settings->get('sparql_fuseki_endpoint', $this->config['sparql']['config']['sparql_fuseki_endpoint']));
+        $this->fusekiEndpoint = rtrim($this->fusekiEndpoint, '/');
 
         $this->fusekiAuth = [];
         $this->fusekiAuth['type'] = $this->getArg('fuseki_authmode', $this->settings->get('sparql_fuseki_authmode', $this->config['sparql']['config']['sparql_fuseki_authmode']));
@@ -655,7 +680,7 @@ SQL;
         if (!$response->isSuccess()) {
             unset($this->indexes['fuseki']);
             $this->logger->err(
-                'Sparql dataset "{dataset}" ({format}): the endpoint is not available: {message}.', // @translate
+                'Sparql dataset "{dataset}" ({format}): the endpoint is not available: {message}', // @translate
                 ['dataset' => $this->datasetName, 'format' => 'fuseki', 'message' => $response->getBody() ?: $response->getReasonPhrase()]
             );
             return $this;
@@ -677,6 +702,7 @@ SQL;
                 $this->prepareDatasetArc2();
                 break;
             case 'fuseki':
+            case 'fuseki_file':
                 $this->prepareDatasetFuseki();
                 break;
             case 'turtle':
@@ -726,7 +752,7 @@ SQL;
             if (!$response->isSuccess()) {
                 unset($this->indexes['fuseki']);
                 $this->logger->err(
-                    'Sparql dataset "{dataset}" ({format}): the dataset cannot be deleted: {message}.', // @translate
+                    'Sparql dataset "{dataset}" ({format}): the dataset cannot be deleted: {message}', // @translate
                     ['dataset' => $this->datasetName, 'format' => 'fuseki', 'message' => $response->getBody() ?: $response->getReasonPhrase()]
                 );
                 return $this;
@@ -745,7 +771,7 @@ SQL;
         if (!$response->isSuccess()) {
             unset($this->indexes['fuseki']);
             $this->logger->err(
-                'Sparql dataset "{dataset}" ({format}): the dataset cannot be created: {message}.', // @translate
+                'Sparql dataset "{dataset}" ({format}): the dataset cannot be created: {message}', // @translate
                 ['dataset' => $this->datasetName, 'format' => 'fuseki', 'message' => $response->getBody() ?: $response->getReasonPhrase()]
             );
             return $this;
@@ -778,7 +804,7 @@ SQL;
             if (!$response->isSuccess()) {
                 unset($this->indexes['fuseki']);
                 $this->logger->err(
-                    'Sparql dataset "{dataset}" ({format}): the dataset cannot be activated: {message}.', // @translate
+                    'Sparql dataset "{dataset}" ({format}): the dataset cannot be activated: {message}', // @translate
                     ['dataset' => $this->datasetName, 'format' => 'fuseki', 'message' => $response->getBody() ?: $response->getReasonPhrase()]
                 );
                 return $this;
@@ -1088,6 +1114,52 @@ SQL;
             );
             return false;
         }
+        return true;
+    }
+
+    /**
+     * Store all resources as turtle in Fuseki via the triplestore file.
+     *
+     * @see https://loopasam.github.io/jena-doc/documentation/serving_data/
+     */
+    protected function storeTurtleFusekiFromFile(): bool
+    {
+        if (!file_exists($this->filepath)) {
+            $this->logger->err(
+                'Sparql dataset "{dataset}" ({format}): a triplestore file is required to index fuseki from file.', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'fuseki']
+            );
+            return false;
+        }
+
+        if (!filesize($this->filepath)) {
+            $this->logger->err(
+                'Sparql dataset "{dataset}" ({format}): the triplestore file required to index fuseki is empty.', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'fuseki']
+            );
+            return false;
+        }
+
+        try {
+            $response = $this->httpClient
+                ->setUri($this->fusekiEndpoint . '/' . $this->datasetName . '/data')
+                ->setMethod(HttpRequest::METHOD_POST)
+                // Don't use file upload, it uses a wrong data type.
+                // ->setFileUpload($this->filepath, 'file', null, 'text/turtle')
+                ->setHeaders(['Content-Type' => 'text/turtle; charset=utf-8'])
+                ->setRawBody(file_get_contents($this->filepath))
+                ->send();
+            if (!$response->isSuccess()) {
+                throw new Exception($response->getBody() ?: $response->getReasonPhrase());
+            }
+        } catch (Exception $e) {
+            $this->logger->warn(
+                'Sparql dataset "{dataset}" ({format}): {message}', // @translate
+                ['dataset' => $this->datasetName, 'format' => 'fuseki', 'message' => $e->getMessage()]
+            );
+            return false;
+        }
+
         return true;
     }
 

@@ -110,6 +110,12 @@ class Module extends AbstractModule
 
         $services = $this->getServiceLocator();
         $settings = $services->get('Omeka\Settings');
+
+        $fusekiEndpoint = $settings->get('sparql_fuseki_endpoint');
+        if ($fusekiEndpoint) {
+            $settings->set('sparql_fuseki_endpoint', rtrim($fusekiEndpoint, '/'));
+        }
+
         if (!$settings->get('sparql_arc2_write_key')) {
             $writeKey = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(128))), 0, 24);
             $settings->set('sparql_arc2_write_key', $writeKey);
