@@ -22,7 +22,7 @@ results.
 Furthermore, results may be a list of data, but sparql graphs too.
 
 **WARNING**: This is a work in progress and the [sparql protocol version 1.1] is
-not fully implemented yet when using internal sparql endpoint.
+not fully implemented yet when using internal sparql endpoint (version 1.0 only).
 
 For a big base or full support of the sparql specifications, in particular the
 [sparql protocol version 1.1], it is recommended to use an external sparql
@@ -127,7 +127,7 @@ Apache Jena Fuseki
 ------------------
 
 An external sparql server is required only for big databases or to support full
-sparql protocol version 1.1. One of the most common is Apache Jena Fuseki.
+sparql protocol version 1.1. One of the most common is [Apache Jena Fuseki].
 
 Fuseki is part of [Jena], a framework incubated by Apache to manage semantic web
 and linked data applications. Only the server (Fuseki) and the triple store
@@ -259,26 +259,26 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
 
   4.1. Service for systemd
 
-    ```sh
-    sudo cp /opt/fuseki/fuseki.service /etc/systemd/system/
-    sudo useradd -r -s /bin/false fuseki
-    # Take care that the user fuseki should access /etc/fuseki.
-    sudo mkdir /etc/fuseki
-    sudo chown fuseki:fuseki /etc/fuseki
-    # Take care that the user fuseki should access the omeka s triple store.
-    # Depending on your web server configuration, you can make readable the
-    # Omeka S directory files/triplestore, or add the user to the server group,
-    # or store the triplestore somewhere else. A read only access is enough.
-    # You should take care of parents too.
-    sudo chmod -R o+rX /var/www/html/omekas/files/triplestore/
-    ```
+  ```sh
+  sudo cp /opt/fuseki/fuseki.service /etc/systemd/system/
+  sudo useradd -r -s /bin/false fuseki
+  # Take care that the user fuseki should access /etc/fuseki.
+  sudo mkdir /etc/fuseki
+  sudo chown fuseki:fuseki /etc/fuseki
+  # Take care that the user fuseki should access the omeka s triple store.
+  # Depending on your web server configuration, you can make readable the
+  # Omeka S directory files/triplestore, or add the user to the server group,
+  # or store the triplestore somewhere else. A read only access is enough.
+  # You should take care of parents too.
+  sudo chmod -R o+rX /var/www/html/omekas/files/triplestore/
+  ```
 
   4.2. Service for init.d (deprecated)
 
-    ```sh
-    sudo cp /opt/apache-jena-fuseki/fuseki /etc/init.d/
-    sudo chmod +x /etc/init.d/fuseki
-    ```
+  ```sh
+  sudo cp /opt/apache-jena-fuseki/fuseki /etc/init.d/
+  sudo chmod +x /etc/init.d/fuseki
+  ```
 
 5. Enable the service
 
@@ -420,7 +420,7 @@ See online issues on the [module issues] page on GitLab.
 License
 -------
 
-* Module
+### Module
 
 This module is published under the [CeCILL v2.1] license, compatible with
 [GNU/GPL] and approved by [FSF] and [OSI].
@@ -448,10 +448,10 @@ conditions as regards security.
 The fact that you are presently reading this means that you have had knowledge
 of the CeCILL license and that you accept its terms.
 
-* Libraries
+### Libraries
 
-  - [semsol/arc2]: GPL-2.0-or-later or W3C
-  - [TriplyDB/yasgui]: MIT
+- [semsol/arc2]: either GPL-2.0-or-later or W3C
+- [TriplyDB/yasgui]: MIT
 
 
 Copyright
