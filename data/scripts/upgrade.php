@@ -26,22 +26,12 @@ $messenger = $plugins->get('messenger');
 $entityManager = $services->get('Omeka\EntityManager');
 
 if (version_compare($oldVersion, '3.4.2', '<')) {
-    /** @var \Omeka\Module\Manager $moduleManager */
-    $moduleManager = $services->get('Omeka\ModuleManager');
-    $module = $moduleManager->getModule('Common');
-    if ($module && in_array($module->getState(), [
-        \Omeka\Module\Manager::STATE_ACTIVE,
-        \Omeka\Module\Manager::STATE_NOT_ACTIVE,
-        \Omeka\Module\Manager::STATE_NEEDS_UPGRADE,
-    ])) {
-        $version = $module->getIni('version');
-        if (version_compare($version, '3.4.47', '<')) {
-            $message = new Message(
-                'The module %1$s should be upgraded to version %2$s or later.', // @translate
-                'Common', '3.4.47'
-            );
-            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
-        }
+    if (!method_exists($this, 'checkModuleActiveVersion') || !$this->checkModuleActiveVersion('Common', '3.4.49')) {
+        $message = new Message(
+            'The module %1$s should be upgraded to version %2$s or later.', // @translate
+            'Common', '3.4.49'
+        );
+        throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
     }
 
     $indexes = $settings->get('sparql_indexes', []);
