@@ -355,7 +355,7 @@ class IndexTriplestore extends AbstractJob
                 || !isset($this->dataTypeBlackList['geometry:position'])
             )
         ) {
-            $this->logger->addWarning(
+            $this->logger->warn(
                 'The module DataTypeGeometry should be at least version 3.4.4 to index geographic and geometric values.', // @translate
             );
             $this->dataTypeBlackList['geography'] = 'geography';
