@@ -476,7 +476,7 @@ SELECT vocabulary.prefix, vocabulary.namespace_uri
 FROM vocabulary
 JOIN resource_class ON resource_class.vocabulary_id = vocabulary.id
 JOIN resource ON resource.resource_class_id = resource_class.id
-JOIN media ON media.id = resource.resource_id
+JOIN media ON media.id = resource.id
 WHERE media.item_id IN (:ids)
 GROUP BY vocabulary.prefix
 ORDER BY vocabulary.prefix ASC
