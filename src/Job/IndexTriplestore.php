@@ -962,6 +962,11 @@ SQL;
         ) {
             foreach (array_keys(array_intersect_key($this->properties, $json)) as $property) {
                 foreach ($json[$property] as $key => $value) {
+                    // Avoid a strange issue, probably related to a specific module.
+                    if (!$value || empty($value['type'])) {
+                        unset($json[$property][$key]);
+                        continue;
+                    }
                     if ($this->resourcePublicOnly && !$value['is_public']) {
                         unset($json[$property][$key]);
                         continue;
