@@ -967,7 +967,7 @@ SQL;
                         unset($json[$property][$key]);
                         continue;
                     }
-                    if ($this->resourcePublicOnly && !$value['is_public']) {
+                    if ($this->resourcePublicOnly && empty($value['is_public'])) {
                         unset($json[$property][$key]);
                         continue;
                     }
