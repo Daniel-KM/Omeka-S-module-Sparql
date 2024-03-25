@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-15 00:00+0000\n"
-"PO-Revision-Date: 2024-01-15 00:00+0000\n"
+"POT-Creation-Date: 2024-03-25 00:00+0000"
+"PO-Revision-Date: 2024-03-25 00:00+0000"
 "Last-Translator: Daniel Berthereau <Daniel.fr@Berthereau.net>\n"
 "Language-Team: \n"
 "Language: fr\n"
@@ -16,6 +16,13 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 3.2.2\n"
+
+#: Module.php:68
+#, php-format
+msgid "The module %1$s should be upgraded to version %2$s or later."
+msgstr ""
+"Le module « %1$s » doit être mis à niveau à la version « %2$s » ou "
+"supérieure."
 
 #: view/common/sparql-search.phtml:32
 msgid "Namespaces"
@@ -37,11 +44,11 @@ msgstr "Le triplestore RDF n’est pas disponible actuellement."
 msgid "Triplestore"
 msgstr "Triplestore"
 
-#: Module.php:66
+#: Module.php:79
 msgid "The directory \"{directory}\" is not writeable."
 msgstr "Le répertoire « {directory} » n’est pas accessible en écriture."
 
-#: Module.php:83 Module.php:170 src/Job/IndexTriplestore.php:359
+#: Module.php:96 Module.php:183 src/Job/IndexTriplestore.php:359
 msgid ""
 "The module DataTypeGeometry should be at least version 3.4.4 to index "
 "geographic and geometric values."
@@ -49,7 +56,7 @@ msgstr ""
 "Le module Data Type Geometry doit être au moins à la version 3.4.4 pour "
 "indexer les valeurs géographiques et géométriques."
 
-#: Module.php:89
+#: Module.php:102
 msgid ""
 "You should index your data first for the internal sparql server or for an "
 "external one. The internal one is available at {link} and a form can be "
@@ -59,7 +66,7 @@ msgstr ""
 "pour un serveur externe. Le serveur interne est disponible à {link} et un "
 "formulaire peut être mis partout dans le site via le bloc de page « sparql »."
 
-#: Module.php:154
+#: Module.php:167
 msgid ""
 "The data types html and xml are currently not supported and converted into "
 "literal."
@@ -67,7 +74,7 @@ msgstr ""
 "Les types de données html et xml ne sont actuellement pas pris en charge et "
 "convertis en données littérales."
 
-#: Module.php:185
+#: Module.php:198
 msgid ""
 "Indexing json-ld triplestore in background ({link_job}job #{job_id}"
 "{link_end}, {link_log}logs{link_end})."

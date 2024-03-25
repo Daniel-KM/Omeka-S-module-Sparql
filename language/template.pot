@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-15 00:00+0000\n"
+"POT-Creation-Date: 2024-03-25 00:00+0000"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,6 +16,11 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#: Module.php:68
+#, php-format
+msgid "The module %1$s should be upgraded to version %2$s or later."
+msgstr ""
 
 #: view/common/sparql-search.phtml:32
 msgid "Namespaces"
@@ -37,30 +42,30 @@ msgstr ""
 msgid "Triplestore"
 msgstr ""
 
-#: Module.php:66
+#: Module.php:79
 msgid "The directory \"{directory}\" is not writeable."
 msgstr ""
 
-#: Module.php:83 Module.php:170 src/Job/IndexTriplestore.php:359
+#: Module.php:96 Module.php:183 src/Job/IndexTriplestore.php:359
 msgid ""
 "The module DataTypeGeometry should be at least version 3.4.4 to index "
 "geographic and geometric values."
 msgstr ""
 
-#: Module.php:89
+#: Module.php:102
 msgid ""
 "You should index your data first for the internal sparql server or for an "
 "external one. The internal one is available at {link} and a form can be "
 "anywhere via the site page block \"sparql\"."
 msgstr ""
 
-#: Module.php:154
+#: Module.php:167
 msgid ""
 "The data types html and xml are currently not supported and converted into "
 "literal."
 msgstr ""
 
-#: Module.php:185
+#: Module.php:198
 msgid ""
 "Indexing json-ld triplestore in background ({link_job}job #{job_id}"
 "{link_end}, {link_log}logs{link_end})."
