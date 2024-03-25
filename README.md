@@ -482,7 +482,7 @@ Université des Antilles et de la Guyane, currently managed via Greenstone.
 [sparql language]: https://www.w3.org/TR/2013/REC-sparql11-query-20130321
 [sparql protocol version 1.0]: http://www.w3.org/TR/2008/REC-rdf-sparql-protocol-20080115
 [sparql protocol version 1.1]: http://www.w3.org/TR/rdf-sparql-protocol
-[Installing a module]: https://omeka.org/s/docs/user-manual/modules
+[installing a module]: https://omeka.org/s/docs/user-manual/modules
 [Sparql.zip]: https://github.com/Daniel-KM/Omeka-S-module-Sparql/releases
 [CORS]: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
 [aws documentation]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
