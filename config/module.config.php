@@ -115,7 +115,6 @@ return [
             'sparql' => [
                 'heading' => null,
                 'interface' => 'default',
-                'template' => '',
             ],
         ],
     ],
