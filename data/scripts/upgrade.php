@@ -46,6 +46,17 @@ if (version_compare($oldVersion, '3.4.2', '<')) {
 }
 
 if (version_compare($oldVersion, '3.4.4', '<')) {
+    /**
+     * Migrate blocks of this module to new blocks of Omeka S v4.1.
+     *
+     * Replace filled settting "heading" by a specific block "Heading".
+     * Move setting template to block layout template.
+     *
+     * @var \Laminas\Log\Logger $logger
+     *
+     * @see \Omeka\Db\Migrations\MigrateBlockLayoutData
+     */
+
     $logger = $services->get('Omeka\Logger');
     $pageRepository = $entityManager->getRepository(\Omeka\Entity\SitePage::class);
     $blocksRepository = $entityManager->getRepository(\Omeka\Entity\SitePageBlock::class);
@@ -55,6 +66,7 @@ if (version_compare($oldVersion, '3.4.4', '<')) {
     $hasBlockPlus = $this->isModuleActive('BlockPlus');
 
     $pagesUpdated = [];
+    $pagesUpdated2 = [];
     foreach ($pageRepository->findAll() as $page) {
         $pageId = $page->getId();
         $pageSlug = $page->getSlug();
@@ -92,6 +104,15 @@ if (version_compare($oldVersion, '3.4.4', '<')) {
             }
             unset($data['heading']);
 
+            $template = $data['template'] ?? null;
+            if ($template && $template !== 'common/block-layout/sparql') {
+                $layoutData = $block->getLayoutData();
+                $layoutData['template_name'] = pathinfo($template, PATHINFO_FILENAME);
+                $block->setLayoutData($layoutData);
+                $pagesUpdated2[$siteSlug][$pageSlug] = $pageSlug;
+            }
+            unset($data['template']);
+
             $block->setData($data);
         }
     }
@@ -106,6 +127,23 @@ if (version_compare($oldVersion, '3.4.4', '<')) {
             ['json' => json_encode($result, 448)]
         );
         $messenger->addWarning($message);
+        $logger->warn($message->getMessage(), $message->getContext());
+    }
+
+    if ($pagesUpdated2) {
+        $result = array_map('array_values', $pagesUpdated2);
+        $message = new PsrMessage(
+            'The setting "template" was moved to the new block layout settings available since Omeka S v4.1. You may check pages for styles: {json}', // @translate
+            ['json' => json_encode($result, 448)]
+        );
+        $messenger->addWarning($message);
+        $logger->warn($message->getMessage(), $message->getContext());
+
+        $message = new PsrMessage(
+            'The template files for the block Sparql should be moved from "view/common/block-layout" to "view/common/block-template" in your themes. This process can be done automatically via a task of the module Easy Admin before upgrading the module (important: backup your themes first). You may check your themes for pages: {json}', // @translate
+            ['json' => json_encode($result, 448)]
+        );
+        $messenger->addError($message);
         $logger->warn($message->getMessage(), $message->getContext());
     }
 }
