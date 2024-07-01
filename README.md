@@ -70,7 +70,7 @@ systemctl restart apache2
 Then, you have to add the following rules, adapted to your needs, to the file
 `.htaccess` at the root of Omeka S or in the main config of the server:
 
-```
+```apache2
 # CORS access for some files.
 <IfModule mod_headers.c>
     Header setIfEmpty Access-Control-Allow-Origin "*"
