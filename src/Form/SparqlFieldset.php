@@ -12,16 +12,6 @@ class SparqlFieldset extends Fieldset
     {
         $this
             ->add([
-                'name' => 'o:block[__blockIndex__][o:data][heading]',
-                'type' => Element\Text::class,
-                'options' => [
-                    'label' => 'Block title', // @translate
-                ],
-                'attributes' => [
-                    'id' => 'sparql_heading',
-                ],
-            ])
-            ->add([
                 'name' => 'o:block[__blockIndex__][o:data][interface]',
                 'type' => CommonElement\OptionalRadio::class,
                 'options' => [

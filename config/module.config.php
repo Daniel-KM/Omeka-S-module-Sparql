@@ -113,7 +113,6 @@ return [
         ],
         'block_settings' => [
             'sparql' => [
-                'heading' => null,
                 'interface' => 'default',
             ],
         ],

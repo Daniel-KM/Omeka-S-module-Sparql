@@ -2,16 +2,12 @@
 /**
  * @var \Laminas\View\Renderer\PhpRenderer $this
  * @var \Sparql\Site\BlockLayout\Sparql $block
- * @var string $heading
  * @var string $interface "default" or "yasgui"
  */
 
 ?>
 
 <div class="block block-sparql">
-    <?php if (!empty($heading)): ?>
-    <h2><?= $this->escapeHtmlAttr($heading) ?></h2>
-    <?php endif; ?>
     <?= $this->sparqlSearch([
         'interface' => $interface,
     ]) ?>
