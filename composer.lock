@@ -210,16 +210,16 @@
         },
         {
             "name": "semsol/arc2",
-            "version": "3.0.0",
+            "version": "3.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/semsol/arc2.git",
-                "reference": "8ac880c687777a81c503c873be90913f26e77c5d"
+                "reference": "3e08bc2af723496967bcdedff663e8094f6e5e66"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/semsol/arc2/zipball/8ac880c687777a81c503c873be90913f26e77c5d",
-                "reference": "8ac880c687777a81c503c873be90913f26e77c5d",
+                "url": "https://api.github.com/repos/semsol/arc2/zipball/3e08bc2af723496967bcdedff663e8094f6e5e66",
+                "reference": "3e08bc2af723496967bcdedff663e8094f6e5e66",
                 "shasum": ""
             },
             "require": {
@@ -278,9 +278,9 @@
             ],
             "support": {
                 "issues": "https://github.com/semsol/arc2/issues",
-                "source": "https://github.com/semsol/arc2/tree/3.0.0"
+                "source": "https://github.com/semsol/arc2/tree/3.0.1"
             },
-            "time": "2023-09-13T07:18:31+00:00"
+            "time": "2023-10-20T10:51:36+00:00"
         },
         {
             "name": "triplydb/yasgui",
@@ -303,5 +303,5 @@
     "platform-overrides": {
         "php": "7.4"
     },
-    "plugin-api-version": "2.3.0"
+    "plugin-api-version": "2.2.0"
 }
