@@ -3,7 +3,6 @@
 namespace Sparql\Form;
 
 use Common\Form\Element as CommonElement;
-use Laminas\Form\Element;
 use Laminas\Form\Fieldset;
 
 class SparqlFieldset extends Fieldset

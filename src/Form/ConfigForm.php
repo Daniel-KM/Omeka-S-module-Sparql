@@ -148,7 +148,7 @@ class ConfigForm extends Form
                 'type' => Element\Text::class,
                 'options' => [
                     'label' => 'Fuseki endpoint', // @translate
-                    'info'
+                    'info',
                 ],
                 'attributes' => [
                     'id' => 'sparql_fuseki_endpoint',

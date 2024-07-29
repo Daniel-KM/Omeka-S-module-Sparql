@@ -3,7 +3,6 @@
 namespace Sparql\Job;
 
 use ARC2;
-use ARC2_Store;
 use EasyRdf\Graph;
 use EasyRdf\RdfNamespace;
 use Exception;
@@ -1083,7 +1082,7 @@ SQL;
      */
     protected function storeTurtleFuseki(string $turtle, AbstractResourceEntityRepresentation $resource): bool
     {
-        [$prefixes, $triples]  = array_map('trim', explode("\n\n", $turtle . "\n\n", 2));
+        [$prefixes, $triples] = array_map('trim', explode("\n\n", $turtle . "\n\n", 2));
         if (!$prefixes || !$triples) {
             $this->logger->warn(
                 'Sparql dataset "{dataset}" ({format}), {resource_type} #{resource_id}: no triples.', // @translate
