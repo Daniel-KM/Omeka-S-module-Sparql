@@ -211,7 +211,7 @@ class IndexTriplestore extends AbstractJob
         $this->config = $services->get('Config');
         $this->logger = $services->get('Omeka\Logger');
         $this->settings = $services->get('Omeka\Settings');
-        $this->easyMeta = $services->get('EasyMeta');
+        $this->easyMeta = $services->get('Common\EasyMeta');
         $this->httpClient = $services->get('Omeka\HttpClient');
         $this->connection = $services->get('Omeka\Connection');
         $this->entityManager = $services->get('Omeka\EntityManager');
