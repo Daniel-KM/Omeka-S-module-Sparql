@@ -71,6 +71,14 @@ class Module extends AbstractModule
             throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
         }
 
+        if (PHP_VERSION_ID < 80000) {
+            $message = new PsrMessage(
+                $translator->translate('The module requires php version {version} or newer, but your server has version {version_php}.'), // @translate
+                ['version' => '8.0', 'version_php' => phpversion()]
+            );
+            throw new \Omeka\Module\Exception\ModuleCannotInstallException((string) $message);
+        }
+
         $config = $services->get('Config');
         $basePath = $config['file_store']['local']['base_path'] ?: (OMEKA_PATH . '/files');
 
