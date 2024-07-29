@@ -56,6 +56,9 @@ the module to `Sparql`, go to the root of the module, and run:
 composer install --no-dev
 ```
 
+**Warning**: The module requires php 8.0. If you have only php 7.4, you should
+downgrade the version of semsol/arc2 to 2.5 in composer.json.
+
 ### Server allowing CORS (Cross-Origin Resource Sharing)
 
 To make the endpoint available from any client, it should be [CORS] compliant.
@@ -510,6 +513,7 @@ Université des Antilles et de la Guyane, currently managed via Greenstone.
 [GNU/GPL]: https://www.gnu.org/licenses/gpl-3.0.html
 [FSF]: https://www.fsf.org
 [OSI]: http://opensource.org
+[MIT]: http://opensource.org/licenses/MIT
 [semsol/arc2]: https://github.com/semsol/arc2
 [TriplyDB/yasgui]: https://github.com/TriplyDB/Yasgui
 [Manioc]: https://manioc.org
