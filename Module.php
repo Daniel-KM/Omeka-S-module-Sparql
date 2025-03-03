@@ -93,9 +93,8 @@ class Module extends AbstractModule
 
     protected function postInstall(): void
     {
-        $plugins = $this->getServiceLocator()->get('ControllerPluginManager');
-        $urlPlugin = $plugins->get('url');
-        $messenger = $plugins->get('messenger');
+        $services = $this->getServiceLocator();
+        $messenger = $services->get('ControllerPluginManager')->get('messenger');
 
         if ($this->isModuleActive('DataTypeGeometry')
             && !$this->isModuleVersionAtLeast('DataTypeGeometry', '3.4.4')
@@ -106,9 +105,13 @@ class Module extends AbstractModule
             $messenger->addWarning($message);
         }
 
+        /** @var \Laminas\View\Helper\ServerUrl $serverUrlHelper */
+        $serverUrlHelper = $services->get('ViewHelperManager')->get('ServerUrl');
+        $baseUrlPath = $services->get('Router')->getBaseUrl();
+
         $message = new PsrMessage(
             'You should index your data first for the internal sparql server or for an external one. The internal one is available at {link} and a form can be anywhere via the site page block "sparql".', // @translate
-            ['link' => $urlPlugin->fromRoute('sparql')]
+            ['link' => $serverUrlHelper($baseUrlPath ? $baseUrlPath . '/sparql' : '/sparql')]
         );
         $message->setEscapeHtml(false);
         $messenger->addSuccess($message);
