@@ -12,12 +12,14 @@ use Common\Stdlib\PsrMessage;
  *
  * @var \Omeka\Api\Manager $api
  * @var array $config
+ * @var \Laminas\Mvc\Controller\Plugin\Url $url
  * @var \Omeka\Settings\Settings $settings
  * @var \Doctrine\DBAL\Connection $connection
  * @var \Doctrine\ORM\EntityManager $entityManager
  * @var \Omeka\Mvc\Controller\Plugin\Messenger $messenger
  */
 $plugins = $services->get('ControllerPluginManager');
+$url = $plugins->get('url');
 $api = $plugins->get('api');
 $config = $services->get('Config');
 $settings = $services->get('Omeka\Settings');
@@ -148,3 +150,10 @@ if (version_compare($oldVersion, '3.4.4', '<')) {
         $logger->warn($message->getMessage(), $message->getContext());
     }
 }
+
+$message = new PsrMessage(
+    'Don’t forget to index resources regularly via the button "Process" in the {link}config form{link_end}.', // @translate
+    ['link' => '<a href="' . $url->fromRoute('admin/default', ['controller' => 'module', 'action' => 'configure'], ['query' => ['id' => 'Sparql']]) . '">', 'link_end' => '</a>']
+);
+$message->setEscapeHtml(false);
+$messenger->addNotice($message);
