@@ -15,14 +15,14 @@ much more global search: requests are not limited to the database, but to all
 the linked data, that can be federated. So this a powerful search tool useful
 when you have many relations and normalized data (dates, people, subjects,
 locations, etc.), in particular via the module [Value Suggest] and values that
-uses common ontologies with right precise usage of each properties and classes.
-If you have custom ontologies, publish them and take them stable to allow richer
-results.
+uses common ontologies with right precise usage of each property and class. If
+you have custom ontologies, add relations with existing ontologies, publish them
+and make them stable to allow richer results.
 
 Furthermore, results may be a list of data, but sparql graphs too.
 
-**WARNING**: This is a work in progress and the [sparql protocol version 1.1] is
-not fully implemented yet when using internal sparql endpoint (version 1.0 only).
+**WARNING**: The [sparql protocol version 1.1] is not fully implemented yet when
+using the internal sparql endpoint (version 1.0 only, with limited filters).
 
 For a big base or full support of the sparql specifications, in particular the
 [sparql protocol version 1.1], it is recommended to use an external sparql
@@ -116,14 +116,108 @@ external sparql server like Fuseki.
 
 There are two ways to query the search engine.
 
+1. Create a site page with block Sparql
+
+To query the triplestore with a human interface, create a page with the block
+"sparql" and go to it. The form allow to write any sparql query. Generally, you
+have to include the prefixes, so the simplest way for that is to check the
+checkbox.
+
+2. Query via the endpoint
+
 To query the triplestore according to the standard [sparql protocol version 1.0],
 go to https://example.org/sparql. This endpoint is designed for servers.
 
-To query the triplestore with a human interface, create a page with the block
-"sparql" and go to it.
+If you use an external sparql server like fuseki, just point it to the
+triplestore created by the module, then use the url provided by this external
+sparql server.
 
-If you use an external sparql server, just point it to the triplestore created
-by the module.
+The format of the output for the internal sparql endpoint is a standard xml
+[sparql result].
+
+### Examples of sparql queries
+
+Except the first three queries, the following examples assumes that prefixes are
+prepended. They are automatically included with yasgui, but a checkbox should be
+checked with the standard form, and they may or may not be included with an
+external sparql server.
+
+Like sql, the lines starting with a "#" are comments and are automatically
+ignored.
+
+1. Get the title of the item #1 in the triplestore, without using prefixes:
+
+```sparql
+# Assume Omeka is installed on the server http://example.org.
+
+SELECT ?title
+WHERE {
+    <http://example.org/api/items/1> <http://purl.org/dc/terms/title> ?title .
+}
+```
+
+2. First ten triplets stored in the triplestore:
+
+```sparql
+SELECT *
+WHERE {
+    ?sub ?pred ?obj .
+}
+LIMIT 10
+```
+
+3. First ten titles stored in the triplestore:
+
+```sparql
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT ?title
+WHERE {
+    ?resource dcterms:title ?title .
+}
+LIMIT 10
+```
+
+4. All resources with title "Test":
+
+```sparql
+SELECT ?resource
+WHERE {
+    ?resource dcterms:title "Test" .
+}
+```
+
+5. Unlike sql in Omeka, sparql is case sensitive, so normalize case manually:
+
+```sparql
+SELECT ?resource
+WHERE {
+    ?resource dcterms:title ?title .
+    FILTER (LCASE(?title) = "test")
+}
+```
+
+6. The internal sparql parser does not support function LCASE() neither many
+   FILTER() function, so this search is not possible in internal engine:
+
+```sparql
+SELECT ?resource WHERE {
+  ?resource dcterms:title ?title .
+  FILTER (REGEX(?title, "^test$", "i"))
+}
+```
+
+7. Get multiple values for all resources, filtered by titles containing the
+string "test" (the filter is not available with internal sparql engine):
+
+```sparql
+SELECT ?title ?subject
+WHERE {
+    ?resource dcterms:title ?title .
+    ?resource dcterms:subject ?subject
+    FILTER(CONTAINS(?title, "test"))
+}
+```
 
 
 Apache Jena Fuseki
@@ -212,14 +306,14 @@ _Note_: for historical reasons, Jena names rdf graphs "models" and rdf triples
 
 ### For production environment
 
-  **WARNING**: By default, the database exposed is fully accessible, so it is
-  important to protect it. Furthermore, you should not index private resources
-  in that case, because there is no authorization checks by default. See below
-  for such a security.
+**WARNING**: By default, the database exposed is fully accessible, so it is
+important to protect it. Furthermore, you should not index private resources in
+that case, because there is no authorization checks by default. See below for
+such a security.
 
-  Nevertheless, Fuseki is fully available via localhost (with a password if set),
-  so the triplestore can be managed dynamically via the module, while secure for
-  external access.
+Nevertheless, Fuseki is fully available via localhost (with a password if set),
+so the triplestore can be managed dynamically via the module, while secure for
+external access.
 
 1. Download and install Fuseki 2
 
@@ -474,8 +568,8 @@ Omeka, so conversion are automatically done.
 
 * Funding
 
-This module was developed for the future digital library [Manioc] of the
-Université des Antilles et de la Guyane, currently managed via Greenstone.
+This module was developed for the digital library [Manioc] of the Université des
+Antilles et de la Guyane.
 
 
 [Sparql]: https://gitlab.com/Daniel-KM/Omeka-S-module-Sparql
@@ -488,6 +582,7 @@ Université des Antilles et de la Guyane, currently managed via Greenstone.
 [installing a module]: https://omeka.org/s/docs/user-manual/modules
 [Sparql.zip]: https://github.com/Daniel-KM/Omeka-S-module-Sparql/releases
 [CORS]: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+[sparql result]: http://www.w3.org/2005/sparql-results
 [aws documentation]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html
 [Apache Jena Fuseki]: https://jena.apache.org/documentation/fuseki2
 [Jena]: https://jena.apache.org/
