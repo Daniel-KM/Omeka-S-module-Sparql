@@ -139,7 +139,7 @@ class ConfigForm extends Form
                 'attributes' => [
                     'id' => 'sparql_arc2_write_key',
                     'readonly' => 'readonly',
-                    'value' => substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(128))), 0, 24),
+                    'value' => substr(strtr(base64_encode(random_bytes(128)), ['+' => '', '/' => '', '=' => '']), 0, 24),
                 ],
             ])
 

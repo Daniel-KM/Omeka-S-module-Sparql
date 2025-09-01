@@ -141,7 +141,7 @@ class Module extends AbstractModule
         }
 
         if (!$settings->get('sparql_arc2_write_key')) {
-            $writeKey = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(128))), 0, 24);
+            $writeKey = substr(strtr(base64_encode(random_bytes(128)), ['+' => '', '/' => '', '=' => '']), 0, 24);
             $settings->set('sparql_arc2_write_key', $writeKey);
         }
 
