@@ -372,30 +372,30 @@ class SparqlSearch extends AbstractHelper
         }
 
         // TODO Check if data type geometry is used.
-        if (class_exists('DataTypeGeometry\Entity\DataTypeGeography')) {
+        if (class_exists('DataTypeGeometry\Module', false)) {
             $prefixIris['geo'] = 'http://www.opengis.net/ont/geosparql#';
         }
 
-        $sql = <<<SQL
-SELECT vocabulary.prefix, vocabulary.namespace_uri
-FROM vocabulary
-JOIN property ON property.vocabulary_id = vocabulary.id
-JOIN value ON value.property_id = property.id
-GROUP BY vocabulary.prefix
-ORDER BY vocabulary.prefix ASC
-;
-SQL;
+        $sql = <<<'SQL'
+            SELECT vocabulary.prefix, vocabulary.namespace_uri
+            FROM vocabulary
+            JOIN property ON property.vocabulary_id = vocabulary.id
+            JOIN value ON value.property_id = property.id
+            GROUP BY vocabulary.prefix
+            ORDER BY vocabulary.prefix ASC
+            ;
+            SQL;
         $prefixIris += $this->connection->executeQuery($sql)->fetchAllKeyValue();
 
-        $sql = <<<SQL
-SELECT vocabulary.prefix, vocabulary.namespace_uri
-FROM vocabulary
-JOIN resource_class ON resource_class.vocabulary_id = vocabulary.id
-JOIN resource ON resource.resource_class_id = resource_class.id
-GROUP BY vocabulary.prefix
-ORDER BY vocabulary.prefix ASC
-;
-SQL;
+        $sql = <<<'SQL'
+            SELECT vocabulary.prefix, vocabulary.namespace_uri
+            FROM vocabulary
+            JOIN resource_class ON resource_class.vocabulary_id = vocabulary.id
+            JOIN resource ON resource.resource_class_id = resource_class.id
+            GROUP BY vocabulary.prefix
+            ORDER BY vocabulary.prefix ASC
+            ;
+            SQL;
         $prefixIris += $this->connection->executeQuery($sql)->fetchAllKeyValue();
 
         foreach ($prefixIris as $prefix => $iri) {

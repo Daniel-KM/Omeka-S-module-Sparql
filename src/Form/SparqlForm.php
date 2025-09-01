@@ -58,14 +58,14 @@ class SparqlForm extends Form
             ])
             ->add([
                 'name' => 'submit',
-                'type' => Element\Submit::class,
+                'type' => Element\Button::class,
                 'options' => [
                     'label' => 'Search', // @translate
                 ],
                 'attributes' => [
                     'id' => 'submit',
-                    'form' => 'form-sparql',
-                    'value' => 'Search', // @translate
+                    'type' => 'submit',
+                    'form' => 'sparql-form',
                 ],
             ])
         ;
