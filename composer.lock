@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5a951c3ee1ebd171e392a6d1880eb2f7",
+    "content-hash": "019cd29fb50b44440695a5c4809a507e",
     "packages": [
         {
             "name": "composer/installers",
@@ -211,16 +211,16 @@
         },
         {
             "name": "semsol/arc2",
-            "version": "3.0.1",
+            "version": "3.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/semsol/arc2.git",
-                "reference": "3e08bc2af723496967bcdedff663e8094f6e5e66"
+                "reference": "702d7b1ace0e09cefd36852836cfcc7a3ca6e837"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/semsol/arc2/zipball/3e08bc2af723496967bcdedff663e8094f6e5e66",
-                "reference": "3e08bc2af723496967bcdedff663e8094f6e5e66",
+                "url": "https://api.github.com/repos/semsol/arc2/zipball/702d7b1ace0e09cefd36852836cfcc7a3ca6e837",
+                "reference": "702d7b1ace0e09cefd36852836cfcc7a3ca6e837",
                 "shasum": ""
             },
             "require": {
@@ -279,9 +279,9 @@
             ],
             "support": {
                 "issues": "https://github.com/semsol/arc2/issues",
-                "source": "https://github.com/semsol/arc2/tree/3.0.1"
+                "source": "https://github.com/semsol/arc2/tree/3.1.0"
             },
-            "time": "2023-10-20T10:51:36+00:00"
+            "time": "2024-08-16T06:44:49+00:00"
         },
         {
             "name": "triplydb/yasgui",
@@ -301,5 +301,5 @@
     "prefer-lowest": false,
     "platform": [],
     "platform-dev": [],
-    "plugin-api-version": "2.2.0"
+    "plugin-api-version": "2.3.0"
 }
