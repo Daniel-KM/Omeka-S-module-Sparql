@@ -13,7 +13,7 @@ class SparqlForm extends Form
         $this
             // Don't add the csrf in a search form.
             ->remove('csrf')
-            ->setAttribute('id', 'form-sparql')
+            ->setAttribute('id', 'sparql-form') // TODO
             // The protocol allows "get" or "post" for standard query.
             ->setAttribute('method', 'GET')
             ->add([

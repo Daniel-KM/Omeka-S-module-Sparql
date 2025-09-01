@@ -1,11 +1,11 @@
 @media all {
 
-    #form-sparql textarea {
+    #sparql-form textarea {
         height: auto;
         width: 100%;
     }
-    #form-sparql .inputs label.type-radio,
-    #form-sparql .inputs label.type-radio input[type=radio] {
+    #sparql-form .inputs label.type-radio,
+    #sparql-form .inputs label.type-radio input[type=radio] {
         display: inline-block;
         width: auto;
     }
